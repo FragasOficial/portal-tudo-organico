@@ -84,3 +84,51 @@ function renderProducts() {
 }
 
 renderProducts();
+function updateCart() {
+  const cartContainer = document.getElementById('cart');
+  cartContainer.innerHTML = '';
+  let totalItems = 0;
+  let totalPrice = 0;
+
+  for (const id in cart) {
+    const item = productList.find(p => p.id == id);
+    const quantity = cart[id];
+    const subtotal = item.price * quantity;
+    totalItems += quantity;
+    totalPrice += subtotal;
+
+    cartContainer.innerHTML += `
+      <div class="cart-item">
+        <span>${item.name} x${quantity} - R$ ${subtotal.toFixed(2)}</span>
+      </div>
+    `;
+  }
+
+  document.getElementById('totalItems').innerText = totalItems;
+  document.getElementById('totalPrice').innerHTML = `<strong>Total: R$ ${totalPrice.toFixed(2)}</strong>`;
+}
+
+function confirmPurchase() {
+  let total = 0;
+  for (const id in cart) {
+    const item = productList.find(p => p.id == id);
+    total += item.price * cart[id];
+  }
+
+  const paymentMethod = document.getElementById('payment').value;
+  const message = document.getElementById('confirmationMessage');
+
+  if (total > 0) {
+    message.innerHTML = `
+      <div style="margin-top:15px; padding:10px; background:#dfffdc; border-radius:6px;">
+        <strong>Obrigado pela sua compra!</strong><br>
+        Total: R$ ${total.toFixed(2)}<br>
+        Pagamento via: ${paymentMethod}
+      </div>
+    `;
+    cart = {};
+    updateCart();
+  } else {
+    message.innerHTML = `<span style="color:red">Seu carrinho está vazio.</span>`;
+  }
+}
