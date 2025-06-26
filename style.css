@@ -121,6 +121,39 @@ main {
   font-size: 0.95em;
 }
 
+.payment-method {
+  margin-top: 15px;
+}
+
+.payment-method h3 {
+  margin-bottom: 5px;
+}
+
+.payment-method select {
+  padding: 6px;
+  font-size: 1em;
+  width: 100%;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  margin-bottom: 15px;
+}
+
+.confirm-button {
+  background-color: #1a8f3b;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  width: 100%;
+  font-size: 1em;
+}
+
+.confirmation {
+  margin-top: 20px;
+  font-size: 0.95em;
+}
+
 @media (max-width: 1024px) {
   main {
     flex-direction: column;
