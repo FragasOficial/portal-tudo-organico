@@ -132,3 +132,25 @@ function confirmPurchase() {
     message.innerHTML = `<span style="color:red">Seu carrinho está vazio.</span>`;
   }
 }
+
+function filterProducts() {
+  const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+  const container = document.getElementById('products');
+  container.innerHTML = '';
+
+  const filteredList = productList.filter(product =>
+    product.name.toLowerCase().includes(searchTerm)
+  );
+
+  filteredList.forEach(product => {
+    container.innerHTML += `
+      <div class="product-card">
+        <img src="${product.image}" alt="${product.name}">
+        <h3>${product.name}</h3>
+        <p>Preço: R$ ${product.price.toFixed(2)}</p>
+        <input id="qty-${product.id}" type="number" min="1" max="100" placeholder="Qtd">
+        <button onclick="addToCart(${product.id})">Adicionar</button>
+      </div>
+    `;
+  });
+}
