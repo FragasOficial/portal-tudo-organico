@@ -44,7 +44,6 @@ function getAvailableProducts() {
 
 const productList = getAvailableProducts();
 
-
 // Carrinho de compras
 const cart = {};
 
@@ -392,8 +391,11 @@ async function registerUser(event) {
   const msg = await response.text();
   alert(msg);
 
-  if (response.ok) window.location.href = 'login.html';
+  if (response.ok) {
+    window.location.href = 'login.html';
+  }
 }
+
 
 async function loginUser(event) {
   event.preventDefault();
@@ -411,15 +413,16 @@ async function loginUser(event) {
     const user = await response.json();
     localStorage.setItem('loggedInUser', JSON.stringify(user));
 
-    // Redirecionamento
     if (user.Tipo === 'vendedor') {
       window.location.href = 'painel-vendedor.html';
     } else {
       window.location.href = 'index.html';
     }
   } else {
-    alert(await response.text());
+    const error = await response.text();
+    alert(error);
   }
 }
+
 
 

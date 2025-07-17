@@ -6,9 +6,11 @@
   <title>Login - Tudo Orgânico</title>
   <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet"/>
+  <script src="script.js" defer></script>
 </head>
-<body>
+<body onload="showLoggedUserName()">
   <span id="user-name-display"></span>
+
   <header>
     <div class="header-container">
       <h1 class="logo">Tudo Orgânico</h1>
@@ -19,19 +21,12 @@
   <main style="display: flex; justify-content: center; align-items: center; padding: 40px;">
     <div class="modal-content">
       <h2>Login</h2>
-      <form onsubmit="loginUser(event)">
-        <input type="email" id="loginEmail" placeholder="Email">
-        <input type="password" id="loginPassword" placeholder="Senha">
-        <button type="submit">Entrar</button>
-      </form>
-      <!-- <form id="loginForm" onsubmit="loginUser(event)">
+      <form id="loginForm" onsubmit="loginUser(event)">
         <input type="email" id="loginEmail" placeholder="Email" required />
         <input type="password" id="loginPassword" placeholder="Senha" required />
         <button type="submit">Entrar</button>
-      </form> -->
+      </form>
     </div>
   </main>
-  <body onload="showLoggedUserName()">
-  <script src="script.js"></script>
 </body>
 </html>
