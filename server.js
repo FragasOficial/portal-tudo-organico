@@ -1,3 +1,32 @@
+const dbConfig = {
+  user: 'SEU_USUARIO',         // Ex: sa
+  password: 'SUA_SENHA',       // Ex: 123456
+  server: 'localhost',         // ou nome da instância, exemplo: 'localhost\\SQLEXPRESS'
+  database: 'TudoOrganico',
+  options: {
+    encrypt: false,           // true para Azure
+    trustServerCertificate: true
+  }
+};
+
+
+
+const sql = require('mssql');
+
+app.get('/api/produtos', async (req, res) => {
+  try {
+    await sql.connect(dbConfig);
+    const result = await sql.query('SELECT * FROM Produtos');
+    res.json(result.recordset);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Erro ao buscar produtos.");
+  }
+});
+
+const path = require('path');
+app.use(express.static(path.join(__dirname, 'public'))); // ou onde está o index.html
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
