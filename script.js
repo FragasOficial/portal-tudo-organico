@@ -74,30 +74,18 @@ function renderProducts(filteredList = productList) {
 
 // Filtra os produtos pelo termo digitado
 function filterProducts() {
-  const query = document.getElementById('searchInput').value.toLowerCase();
-  const container = document.getElementById('products');
-  container.innerHTML = '';
+  const query = document.getElementById('searchInput')?.value?.toLowerCase() || '';
+  const selectedState = document.getElementById('stateSelect')?.value;
+  const selectedCity = document.getElementById('citySelect')?.value;
 
-  const filtered = productList.filter(product =>
-    product.name.toLowerCase().includes(query)
-  );
-
-  if (filtered.length === 0) {
-    container.innerHTML = `<p style="grid-column: 1 / -1; text-align: center;">Nenhum produto encontrado.</p>`;
-    return;
-  }
-
-  filtered.forEach(product => {
-    container.innerHTML += `
-      <div class="product-card">
-        <img src="${product.image}" alt="${product.name}">
-        <h3>${product.name}</h3>
-        <p>Preço: R$ ${product.price.toFixed(2)}</p>
-        <input id="qty-${product.id}" type="number" min="1" max="100" placeholder="Qtd">
-        <button onclick="addToCart(${product.id})">Adicionar</button>
-      </div>
-    `;
+  const filtered = productList.filter(product => {
+    const matchesName = product.name.toLowerCase().includes(query);
+    const matchesState = !selectedState || product.state === selectedState;
+    const matchesCity = !selectedCity || product.city === selectedCity;
+    return matchesName && matchesState && matchesCity;
   });
+
+  renderFilteredProducts(filtered);
 }
 
 
@@ -422,6 +410,38 @@ async function loginUser(event) {
     const error = await response.text();
     alert(error);
   }
+}
+
+const citiesByState = {};
+
+// Carrega estados ao iniciar a página
+fetch('https://raw.githubusercontent.com/wgenial/br-cidades-estados-json/master/estados.json')
+  .then(res => res.json())
+  .then(estados => {
+    const stateSelect = document.getElementById('stateSelect');
+    estados.forEach(e => {
+      const opt = document.createElement('option');
+      opt.value = e.sigla;
+      opt.textContent = e.nome;
+      stateSelect.appendChild(opt);
+    });
+  });
+
+function loadCities() {
+  const state = document.getElementById('stateSelect').value;
+  const citySelect = document.getElementById('citySelect');
+  citySelect.innerHTML = '<option value="">Selecione a Cidade</option>';
+
+  if (citiesByState[state]) {
+    citiesByState[state].forEach(cidade => {
+      const opt = document.createElement('option');
+      opt.value = cidade;
+      opt.textContent = cidade;
+      citySelect.appendChild(opt);
+    });
+  }
+
+  filterProducts();
 }
 
 
