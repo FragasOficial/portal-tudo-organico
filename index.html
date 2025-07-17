@@ -14,6 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet"/>
 </head>
 <body>
+  <span id="user-name-display"></span>
   <header>
     <div class="header-container">
       <h1 class="logo">Tudo Orgânico</h1>
@@ -22,8 +23,8 @@
         <button onclick="filterProducts()" class="search-button">Buscar</button>
       </div>
       <div class="user-actions">
-        <button onclick="openLogin()" class="btn-header">Login</button>
-        <button onclick="openRegister()" class="btn-header">Cadastro</button>
+        <a href="login.html" class="btn-header">Login</a>
+        <a href="cadastro.html" class="btn-header">Cadastro</a>
         <button id="adminPanelBtn" onclick="openAdminPanel()" style="display:none;" class="btn-header">Painel Admin</button>
         <button id="logoutBtn" onclick="logout()" style="display:none;" class="btn-header">Logout</button>
       </div>
@@ -54,7 +55,7 @@
     </aside>
   </main>
 
-  <!-- Modal de Login -->
+  <!-- Modal de Login
   <div id="loginModal" class="modal" style="display:none;">
     <div class="modal-content">
       <span onclick="closeLogin()" class="close">&times;</span>
@@ -68,7 +69,7 @@
   </div>
 
   <!-- Modal de Cadastro -->
-  <div id="registerModal" class="modal" style="display:none;">
+  <!-- <div id="registerModal" class="modal" style="display:none;">
     <div class="modal-content">
       <span onclick="closeRegister()" class="close">&times;</span>
       <h2>Cadastro</h2>
@@ -84,7 +85,7 @@
         <button type="submit">Cadastrar</button>
       </form>
     </div>
-  </div>
+  </div> --> -->
 
   <!-- Painel Administrativo -->
   <section id="adminPanel" class="admin-panel" style="display:none;">
@@ -99,7 +100,8 @@
       <button type="submit">Adicionar Produto</button>
     </form>
   </section>
-
+  <body onload="initPage()">
+  <!-- <body onload="showLoggedUserName()"> -->
   <!-- Script principal -->
   <script src="script.js"></script>
 </body>

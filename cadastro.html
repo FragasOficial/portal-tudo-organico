@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cadastro - Tudo Orgânico</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet"/>
+</head>
+<body>
+  <span id="user-name-display"></span>
+  <header>
+    <div class="header-container">
+      <h1 class="logo">Tudo Orgânico</h1>
+      <a href="index.html" class="btn-header">Voltar à loja</a>
+    </div>
+  </header>
+
+  <main style="display: flex; justify-content: center; align-items: center; padding: 40px;">
+    <div class="modal-content">
+      <h2>Cadastro</h2>
+      <form onsubmit="registerUser(event)">
+  <input type="text" id="regName" placeholder="Nome">
+  <input type="email" id="regEmail" placeholder="Email">
+  <input type="password" id="regPassword" placeholder="Senha">
+  <select id="userType">
+    <option value="cliente">Cliente</option>
+    <option value="vendedor">Vendedor</option>
+  </select>
+  <button type="submit">Cadastrar</button>
+</form>
+      <!-- <form id="registerForm" onsubmit="registerUser(event)">
+        <input type="text" id="regName" placeholder="Nome" required />
+        <input type="email" id="regEmail" placeholder="Email" required />
+        <input type="password" id="regPassword" placeholder="Senha" required />
+        <select id="userType" required>
+          <option value="" disabled selected>Tipo de usuário</option>
+          <option value="cliente">Cliente</option>
+          <option value="vendedor">Vendedor</option>
+        </select>
+        <button type="submit">Cadastrar</button>
+      </form> -->
+    </div>
+  </main>
+  <body onload="showLoggedUserName()">
+  <script src="script.js"></script>
+</body>
+</html>
