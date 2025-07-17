@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login - Tudo Orgânico</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="form-container">
+    <h2>Login</h2>
+    <form id="loginForm">
+      <label for="email">E-mail:</label>
+      <input type="email" id="email" required />
+
+      <label for="password">Senha:</label>
+      <input type="password" id="password" required />
+
+      <button type="submit">Entrar</button>
+    </form>
+    <p>Não tem conta? <a href="register.html">Cadastre-se</a></p>
+  </main>
+
+  <script>
+    document.getElementById("loginForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      const userData = localStorage.getItem("user_" + email);
+      if (!userData) {
+        alert("Usuário não encontrado. Verifique seu e-mail.");
+        return;
+      }
+
+      const user = JSON.parse(userData);
+
+      if (user.password !== password) {
+        alert("Senha incorreta.");
+        return;
+      }
+
+      localStorage.setItem("currentUser", JSON.stringify(user)); // Para manter a sessão
+      alert("Login bem-sucedido!");
+
+      if (user.accountType === "vendedor") {
+        window.location.href = "admin.html";
+      } else {
+        window.location.href = "index.html";
+      }
+    });
+  </script>
+</body>
+</html>

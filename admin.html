@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Painel do Vendedor - Tudo Orgânico</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="form-container">
+    <h2>Painel do Vendedor</h2>
+    <form id="productForm">
+      <label>Nome do Produto:</label>
+      <input type="text" id="productName" required />
+
+      <label>Preço (R$):</label>
+      <input type="number" id="productPrice" step="0.01" required />
+
+      <label>Imagem (URL):</label>
+      <input type="url" id="productImage" required />
+
+      <label>Estado (UF):</label>
+      <input type="text" id="productState" maxlength="2" required />
+
+      <label>Cidade:</label>
+      <input type="text" id="productCity" required />
+
+      <button type="submit">Adicionar Produto</button>
+    </form>
+
+    <h3>Seus Produtos</h3>
+    <ul id="productList"></ul>
+  </main>
+
+  <script>
+    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+    if (!currentUser || currentUser.accountType !== "vendedor") {
+      alert("Acesso negado. Faça login como vendedor.");
+      window.location.href = "login.html";
+    }
+
+    const productForm = document.getElementById("productForm");
+    const productList = document.getElementById("productList");
+
+    let vendorProducts = JSON.parse(localStorage.getItem("vendor_" + currentUser.email)) || [];
+
+    function renderVendorProducts() {
+      productList.innerHTML = "";
+      vendorProducts.forEach((product, index) => {
+        const li = document.createElement("li");
+        const timerId = `timer-${index}`;
+        li.innerHTML = `
+          <img src="${product.image}" alt="${product.name}" width="100" />
+          <div><strong>${product.name}</strong> - R$ ${product.price.toFixed(2)}</div>
+          <div>${product.city}/${product.state}</div>
+          <div id="${timerId}" class="timer">05:00</div>
+          <button onclick="removeProduct(${index})">Remover</button>
+        `;
+        productList.appendChild(li);
+        startCountdown(timerId, 5 * 60); // 5 minutos
+      });
+    }
+
+    function startCountdown(elementId, seconds) {
+      const el = document.getElementById(elementId);
+      let time = seconds;
+
+      const interval = setInterval(() => {
+        const min = Math.floor(time / 60).toString().padStart(2, '0');
+        const sec = (time % 60).toString().padStart(2, '0');
+        el.textContent = `${min}:${sec}`;
+
+        if (time <= 0) clearInterval(interval);
+        time--;
+      }, 1000);
+    }
+
+    productForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const product = {
+        name: document.getElementById("productName").value,
+        price: parseFloat(document.getElementById("productPrice").value),
+        image: document.getElementById("productImage").value,
+        state: document.getElementById("productState").value.toUpperCase(),
+        city: document.getElementById("productCity").value
+      };
+      vendorProducts.push(product);
+      localStorage.setItem("vendor_" + currentUser.email, JSON.stringify(vendorProducts));
+      productForm.reset();
+      renderVendorProducts();
+    });
+
+    function removeProduct(index) {
+      if (confirm("Deseja remover este produto?")) {
+        vendorProducts.splice(index, 1);
+        localStorage.setItem("vendor_" + currentUser.email, JSON.stringify(vendorProducts));
+        renderVendorProducts();
+      }
+    }
+
+    renderVendorProducts();
+  </script>
+</body>
+</html>

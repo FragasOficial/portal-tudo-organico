@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pedidos Recebidos - Tudo Orgânico</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h2>Pedidos Recebidos</h2>
+    <div id="sellerOrders"></div>
+  </main>
+
+  <script>
+    const seller = JSON.parse(localStorage.getItem("currentUser"));
+    if (!seller || seller.accountType !== "vendedor") {
+      alert("Acesso restrito aos vendedores.");
+      location.href = "login.html";
+    }
+
+    const allPurchases = JSON.parse(localStorage.getItem("purchases") || "[]");
+    const products = JSON.parse(localStorage.getItem("products") || "[]");
+
+    // Filtra os produtos deste vendedor
+    const myProductIds = products
+      .filter(p => p.vendedorEmail === seller.email)
+      .map(p => p.id);
+
+    const sellerOrders = allPurchases
+      .map(purchase => {
+        const meusItens = purchase.items.filter(item => myProductIds.includes(item.id));
+        return meusItens.length > 0 ? { ...purchase, meusItens } : null;
+      })
+      .filter(p => p);
+
+    const container = document.getElementById("sellerOrders");
+
+    if (sellerOrders.length === 0) {
+      container.innerHTML = "<p>Você ainda não recebeu nenhum pedido.</p>";
+    } else {
+      sellerOrders.forEach((order, index) => {
+        const div = document.createElement("div");
+        div.className = "pedido";
+
+        const dataCompra = new Date(order.date).toLocaleString();
+
+        let html = `<h3>Pedido #${index + 1} - ${dataCompra}</h3>`;
+        html += `<p><strong>Comprador:</strong> ${order.userEmail}</p><ul>`;
+
+        order.meusItens.forEach(item => {
+          html += `
+            <li>
+              ${item.name} - R$ ${item.price} x ${item.quantity}
+            </li>`;
+        });
+
+        html += `</ul><strong>Total: R$ ${order.meusItens.reduce((s, i) => s + i.price * i.quantity, 0).toFixed(2)}</strong>`;
+        div.innerHTML = html;
+        container.appendChild(div);
+      });
+    }
+  </script>
+
+  <style>
+    .pedido {
+      border: 1px solid #ccc;
+      padding: 1em;
+      margin: 1em 0;
+      border-radius: 10px;
+      background-color: #f1fff1;
+    }
+    .pedido h3 {
+      margin-bottom: 0.5em;
+    }
+    .pedido ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    .pedido li {
+      margin: 0.5em 0;
+    }
+  </style>
+</body>
+</html>

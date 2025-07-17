@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tudo Orgânico</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>Tudo Orgânico</h1>
+    <input type="text" id="searchInput" placeholder="Buscar produtos..." />
+    <select id="stateFilter"></select>
+    <select id="cityFilter"></select>
+    <button onclick="window.location='login.html'">Login</button>
+    <button onclick="window.location='register.html'">Cadastrar</button>
+    <div id="cartIcon" onclick="toggleCartModal()">🛒</div>
+  </header>
+
+  <main id="productList"></main>
+
+  <!-- Modal Carrinho -->
+  <div id="cartModal" class="hidden">
+    <div class="modal-content">
+      <h2>Carrinho de Compras</h2>
+      <ul id="cartItems"></ul>
+      <p>Total: <span id="cartTotal">R$ 0,00</span></p>
+      <button onclick="closeCartModal()">Continuar comprando</button>
+      <button onclick="window.location='checkout.html'">Finalizar compra</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

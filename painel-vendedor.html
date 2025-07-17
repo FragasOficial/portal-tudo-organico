@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Painel do Vendedor - Tudo Orgânico</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <main class="container">
+    <h2>📊 Painel de Estatísticas</h2>
+    <div class="dashboard">
+      <div class="card"><h3>🛍️ Total de Produtos Vendidos</h3><p id="totalProdutos"></p></div>
+      <div class="card"><h3>📦 Total de Pedidos</h3><p id="totalPedidos"></p></div>
+      <div class="card"><h3>💰 Total Faturado</h3><p id="totalFaturado"></p></div>
+      <div class="card"><h3>🏆 Produto Mais Vendido</h3><p id="maisVendido"></p></div>
+      <div class="card"><h3>⭐ Avaliação Média</h3><p id="mediaEstrelas"></p></div>
+    </div>
+  </main>
+  <section style="margin-top: 2em;">
+    <h2>📈 Gráfico de Vendas por Produto</h2>
+    <canvas id="graficoVendas" width="400" height="200"></canvas>
+  </section>
+  <section style="margin-top: 2em;">
+    <h2>📅 Evolução Mensal das Vendas</h2>
+    <canvas id="graficoMensal" width="400" height="200"></canvas>
+  </section>
+
+  <script>
+    const vendedor = JSON.parse(localStorage.getItem("currentUser"));
+    if (!vendedor || vendedor.accountType !== "vendedor") {
+      alert("Acesso restrito aos vendedores.");
+      location.href = "login.html";
+    }
+
+    const allPurchases = JSON.parse(localStorage.getItem("purchases") || "[]");
+    const products = JSON.parse(localStorage.getItem("products") || "[]");
+    const ratings = JSON.parse(localStorage.getItem("ratings") || "{}");
+
+    const meusProdutos = products.filter(p => p.vendedorEmail === vendedor.email);
+    const meusIDs = meusProdutos.map(p => p.id);
+
+    let totalProdutos = 0;
+    let totalFaturado = 0;
+    let totalPedidos = 0;
+    const vendasPorProduto = {};
+
+    allPurchases.forEach(p => {
+      const itensVendidos = p.items.filter(i => meusIDs.includes(i.id));
+      if (itensVendidos.length > 0) {
+        totalPedidos++;
+        itensVendidos.forEach(i => {
+          totalProdutos += i.quantity;
+          totalFaturado += i.price * i.quantity;
+          vendasPorProduto[i.name] = (vendasPorProduto[i.name] || 0) + i.quantity;
+        });
+      }
+    });
+
+    const maisVendido = Object.entries(vendasPorProduto).sort((a, b) => b[1] - a[1])[0];
+
+    // Avaliação média
+    let somaEstrelas = 0, totalEstrelas = 0;
+    meusIDs.forEach(id => {
+      if (ratings[id]) {
+        ratings[id].forEach(r => {
+          somaEstrelas += r;
+          totalEstrelas++;
+        });
+      }
+    });
+    const mediaEstrelas = totalEstrelas > 0 ? (somaEstrelas / totalEstrelas).toFixed(2) : "Sem avaliações";
+
+    // Exibir
+    document.getElementById("totalProdutos").textContent = totalProdutos;
+    document.getElementById("totalPedidos").textContent = totalPedidos;
+    document.getElementById("totalFaturado").textContent = "R$ " + totalFaturado.toFixed(2);
+    document.getElementById("maisVendido").textContent = maisVendido ? `${maisVendido[0]} (${maisVendido[1]} vendas)` : "Nenhum produto vendido";
+    document.getElementById("mediaEstrelas").textContent = mediaEstrelas;
+    if (maisVendido) {
+    const ctx = document.getElementById("graficoVendas").getContext("2d");
+    new Chart(ctx, {
+        type: "bar",
+        data: {
+        labels: Object.keys(vendasPorProduto),
+        datasets: [{
+            label: "Quantidade Vendida",
+            data: Object.values(vendasPorProduto),
+            backgroundColor: "rgba(40, 167, 69, 0.6)",
+            borderColor: "rgba(40, 167, 69, 1)",
+            borderWidth: 1
+        }]
+        },
+        options: {
+        responsive: true,
+        indexAxis: 'y',
+        plugins: {
+            legend: {
+            display: false
+            },
+            title: {
+            display: false
+            }
+        },
+        scales: {
+            x: {
+            beginAtZero: true
+            }
+        }
+        }
+    });
+    }
+
+    // Gráfico de evolução mensal
+const mesesNomes = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+const vendasPorMes = new Array(12).fill(0);
+
+allPurchases.forEach(p => {
+  const data = new Date(p.date);
+  const mes = data.getMonth(); // 0 = Jan, 11 = Dez
+  p.items.forEach(i => {
+    if (meusIDs.includes(i.id)) {
+      vendasPorMes[mes] += i.quantity;
+    }
+  });
+});
+
+// Renderizar gráfico
+const ctx2 = document.getElementById("graficoMensal").getContext("2d");
+new Chart(ctx2, {
+  type: "line",
+  data: {
+    labels: mesesNomes,
+    datasets: [{
+      label: "Produtos Vendidos",
+      data: vendasPorMes,
+      fill: true,
+      backgroundColor: "rgba(40, 167, 69, 0.2)",
+      borderColor: "rgba(40, 167, 69, 1)",
+      tension: 0.3,
+      pointBackgroundColor: "green"
+    }]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      y: {
+        beginAtZero: true
+      }
+    }
+  }
+});
+
+  </script>
+
+  <style>
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1em;
+      margin-top: 1em;
+    }
+
+    .card {
+      border: 1px solid #cfcfcf;
+      border-radius: 12px;
+      background-color: #f0fff0;
+      padding: 1em;
+      text-align: center;
+      box-shadow: 1px 1px 5px rgba(0,0,0,0.05);
+    }
+
+    .card h3 {
+      margin-bottom: 0.5em;
+      color: #2a7b2a;
+    }
+
+    .card p {
+      font-size: 1.3em;
+      font-weight: bold;
+      color: #333;
+    }
+  </style>
+</body>
+</html>

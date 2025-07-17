@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Histórico de Compras - Tudo Orgânico</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h2>Histórico de Compras</h2>
+    <div id="purchaseHistory"></div>
+  </main>
+
+  <script>
+    const user = JSON.parse(localStorage.getItem("currentUser"));
+    const allPurchases = JSON.parse(localStorage.getItem("purchases") || "[]");
+    const ratings = JSON.parse(localStorage.getItem("ratings") || "{}");
+
+    const userPurchases = allPurchases.filter(p => p.userEmail === user.email);
+    const container = document.getElementById("purchaseHistory");
+
+    if (userPurchases.length === 0) {
+      container.innerHTML = "<p>Nenhuma compra realizada ainda.</p>";
+    } else {
+      userPurchases.forEach((purchase, index) => {
+        const div = document.createElement("div");
+        div.className = "purchase";
+
+        const dataCompra = new Date(purchase.date).toLocaleString();
+
+        let html = `<h3>Compra #${index + 1} - ${dataCompra}</h3><ul>`;
+
+        purchase.items.forEach(item => {
+          const alreadyRated = ratings[item.id]?.length > 0;
+          html += `
+            <li>
+              ${item.name} - R$ ${item.price} x ${item.quantity}
+              <br>
+              ${alreadyRated ? "Avaliação enviada" : renderStars(item.id)}
+            </li>`;
+        });
+
+        html += `</ul><strong>Total: R$ ${purchase.total.toFixed(2)}</strong>`;
+        div.innerHTML = html;
+        container.appendChild(div);
+      });
+    }
+
+    function renderStars(productId) {
+      let stars = "";
+      for (let i = 1; i <= 5; i++) {
+        stars += `<span class="star" data-id="${productId}" data-value="${i}">☆</span>`;
+      }
+      return `<div class="rating">${stars}</div>`;
+    }
+
+    document.addEventListener("click", function (e) {
+      if (e.target.classList.contains("star")) {
+        const productId = e.target.getAttribute("data-id");
+        const value = parseInt(e.target.getAttribute("data-value"));
+
+        if (!ratings[productId]) ratings[productId] = [];
+        ratings[productId].push(value);
+        localStorage.setItem("ratings", JSON.stringify(ratings));
+        location.reload();
+      }
+    });
+  </script>
+
+  <style>
+    .purchase {
+      border: 1px solid #ccc;
+      border-radius: 12px;
+      padding: 1em;
+      margin: 1em 0;
+      background: #f6fff6;
+    }
+    .rating {
+      font-size: 1.3em;
+      color: #ffb400;
+    }
+    .star {
+      cursor: pointer;
+    }
+  </style>
+</body>
+</html>
