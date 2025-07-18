@@ -1,142 +1,152 @@
-const products = [
-  {
-    id: 1,
-    name: "Banana Orgânica",
-    price: 6.50,
-    image: "https://via.placeholder.com/200x150?text=Banana",
-    state: "SP",
-    city: "São Paulo"
-  },
-  {
-    id: 2,
-    name: "Tomate Cereja",
-    price: 8.99,
-    image: "https://via.placeholder.com/200x150?text=Tomate",
-    state: "RJ",
-    city: "Niterói"
-  },
-  // +8 produtos aqui com dados similares...
-];
+// Removido `let products = [];` e `const currentUser = ...` daqui para serem gerenciados por cada página HTML que os usa
+let cart = JSON.parse(localStorage.getItem("checkoutCart") || "[]");
+const API_URL = "http://localhost:3000/api";
 
-let cart = [];
+// A lista completa de estadosCidades é carregada de estados-cidades.js
+// Certifique-se de que estados-cidades.js esteja incluído ANTES deste script.js no HTML
 
-function renderProducts() {
-  const list = document.getElementById("productList");
-  list.innerHTML = "";
-  const search = document.getElementById("searchInput")?.value.toLowerCase() || "";
-  const state = document.getElementById("stateFilter")?.value || "";
-  const city = document.getElementById("cityFilter")?.value || "";
+// Carregar produtos da API
+async function loadProducts(search = "", state = "", city = "") {
+  try {
+    let url = `${API_URL}/products`;
+    const params = [];
+    if (search) params.push(`search=${encodeURIComponent(search)}`);
+    if (state) params.push(`state=${encodeURIComponent(state)}`);
+    if (city) params.push(`city=${encodeURIComponent(city)}`);
 
-  products
-    .filter(p =>
-      p.name.toLowerCase().includes(search) &&
-      (state === "" || p.state === state) &&
-      (city === "" || p.city === city)
-    )
-    .forEach(product => {
-      const div = document.createElement("div");
-      div.className = "product-card";
-      div.innerHTML = `
-        <img src="${product.image}" alt="${product.name}" />
-        <h3>${product.name}</h3>
-        <p>R$ ${product.price.toFixed(2)}</p>
-        <div class="rating" data-id="${product.id}">
-            ${renderStars(product.id)}
-        </div>
-        <label>Qtd:
-            <input type="number" min="1" value="1" id="qty-${product.id}" />
-        </label>
-        <button onclick="addToCart(${product.id})">Adicionar</button>
-        `;
-    });
-}
+    if (params.length > 0) {
+      url += `?${params.join('&')}`;
+    }
 
-function addToCart(id) {
-  const qty = parseInt(document.getElementById(`qty-${id}`).value);
-  const product = products.find(p => p.id === id);
-  const existing = cart.find(item => item.id === id);
-  if (existing) {
-    existing.qty += qty;
-  } else {
-    cart.push({ ...product, qty });
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const products = await response.json(); // Obtém os produtos da API
+    renderProducts(products); // Renderiza os produtos obtidos
+  } catch (error) {
+    console.error("Erro ao carregar produtos:", error);
+    const list = document.getElementById("productList");
+    if (list) {
+      list.innerHTML = "<p>Não foi possível carregar os produtos. Tente novamente mais tarde.</p>";
+    }
   }
-  updateCartModal();
-  toggleCartModal(true);
+  populateFilters(); // Garante que os filtros sejam populados
 }
 
-function updateCartModal() {
+// Renderizar produtos
+function renderProducts(productsToRender) {
+  const list = document.getElementById("productList");
+  if (!list) return;
+  list.innerHTML = ""; // Limpa a lista atual
+
+  if (productsToRender.length === 0) {
+    list.innerHTML = "<p>Nenhum produto encontrado com os critérios de busca/filtro.</p>";
+    return;
+  }
+
+  productsToRender.forEach(product => {
+    const div = document.createElement("div");
+    div.className = "product-card";
+    div.innerHTML = `
+      <img src="${product.image}" alt="${product.name}" />
+      <h3>${product.name}</h3>
+      <p>R$ ${product.price.toFixed(2)}</p>
+      <p>Local: ${product.city}/${product.state}</p>
+      <button onclick="addToCart({ id: ${product.id}, name: '${product.name}', price: ${product.price} })">Adicionar ao Carrinho</button>
+    `;
+    list.appendChild(div);
+  });
+  updateCartDisplay(); // Atualiza o display do carrinho
+}
+
+// Adicionar produto ao carrinho (ainda local)
+function addToCart(product) {
+  const existingItem = cart.find(item => item.id === product.id);
+  if (existingItem) {
+    existingItem.quantity++;
+  } else {
+    cart.push({ ...product, quantity: 1 });
+  }
+  updateCartDisplay();
+  alert(`${product.name} adicionado ao carrinho!`);
+}
+
+// Atualizar exibição do carrinho
+function updateCartDisplay() {
   const list = document.getElementById("cartItems");
+  const totalDisplay = document.getElementById("cartTotal");
+  if (!list || !totalDisplay) return;
+
   list.innerHTML = "";
   let total = 0;
   cart.forEach(item => {
-    const subtotal = item.qty * item.price;
+    const subtotal = item.quantity * item.price;
     total += subtotal;
     const li = document.createElement("li");
-    li.textContent = `${item.name} x${item.qty} = R$ ${subtotal.toFixed(2)}`;
+    li.textContent = `${item.name} x${item.quantity} = R$ ${subtotal.toFixed(2)}`;
     list.appendChild(li);
   });
-  document.getElementById("cartTotal").textContent = `R$ ${total.toFixed(2)}`;
-localStorage.setItem("checkoutCart", JSON.stringify(cart));
+  totalDisplay.textContent = `R$ ${total.toFixed(2)}`;
+  localStorage.setItem("checkoutCart", JSON.stringify(cart));
 }
 
-
+// Toggle do modal do carrinho
 function toggleCartModal(forceShow = false) {
   const modal = document.getElementById("cartModal");
+  if (!modal) return;
   modal.classList.toggle("show", forceShow || !modal.classList.contains("show"));
 }
 
 function closeCartModal() {
-  document.getElementById("cartModal").classList.remove("show");
+  document.getElementById("cartModal")?.classList.remove("show");
 }
 
+// Popula filtros de estado/cidade
 function populateFilters() {
-  const states = [...new Set(products.map(p => p.state))];
   const stateSelect = document.getElementById("stateFilter");
-  stateSelect.innerHTML = `<option value="">Todos Estados</option>` + states.map(s => `<option value="${s}">${s}</option>`).join("");
+  const citySelect = document.getElementById("cityFilter");
+  if (!stateSelect || !citySelect) return;
 
+  stateSelect.innerHTML = '<option value="">Todos os Estados</option>';
+  // estadosCidades é carregado de estados-cidades.js
+  for (let uf in estadosCidades) {
+    stateSelect.innerHTML += `<option value="${uf}">${uf}</option>`;
+  }
+
+  // Event listener para mudança de estado
   stateSelect.addEventListener("change", () => {
-    const selected = stateSelect.value;
-    const cities = [...new Set(products.filter(p => p.state === selected).map(p => p.city))];
-    const citySelect = document.getElementById("cityFilter");
-    citySelect.innerHTML = `<option value="">Todas Cidades</option>` + cities.map(c => `<option value="${c}">${c}</option>`).join("");
-    renderProducts();
+    const uf = stateSelect.value;
+    citySelect.innerHTML = '<option value="">Todas as Cidades</option>';
+    if (uf && estadosCidades[uf]) {
+      estadosCidades[uf].forEach(city => {
+        citySelect.innerHTML += `<option value="${city}">${city}</option>`;
+      });
+    }
+    // Ao mudar o estado, recarrega os produtos com os novos filtros
+    const search = document.getElementById("searchInput")?.value || "";
+    loadProducts(search, stateSelect.value, citySelect.value);
   });
 
-  document.getElementById("cityFilter").addEventListener("change", renderProducts);
+  // Event listener para mudança de cidade
+  citySelect.addEventListener("change", () => {
+    const search = document.getElementById("searchInput")?.value || "";
+    const state = document.getElementById("stateFilter")?.value || "";
+    loadProducts(search, state, citySelect.value);
+  });
 }
 
-document.getElementById("searchInput")?.addEventListener("input", renderProducts);
-window.onload = () => {
-  renderProducts();
-  populateFilters();
-};
-
-document.addEventListener("click", function (e) {
-  if (e.target.classList.contains("star")) {
-    const productId = e.target.getAttribute("data-id");
-    const value = parseInt(e.target.getAttribute("data-value"));
-
-    const ratings = JSON.parse(localStorage.getItem("ratings") || "{}");
-    if (!ratings[productId]) ratings[productId] = [];
-    ratings[productId].push(value);
-    localStorage.setItem("ratings", JSON.stringify(ratings));
-
-    renderProducts(); // re-render para atualizar as estrelas
-  }
+// Event listener para busca
+document.getElementById("searchInput")?.addEventListener("input", () => {
+  const search = document.getElementById("searchInput").value;
+  const state = document.getElementById("stateFilter")?.value || "";
+  const city = document.getElementById("cityFilter")?.value || "";
+  loadProducts(search, state, city);
 });
 
-function renderStars(productId) {
-  const ratings = JSON.parse(localStorage.getItem("ratings") || "{}");
-  const productRatings = ratings[productId] || [];
-  const avg = productRatings.length
-    ? productRatings.reduce((a, b) => a + b, 0) / productRatings.length
-    : 0;
 
-  let starsHtml = "";
-  for (let i = 1; i <= 5; i++) {
-    starsHtml += `<span class="star" data-id="${productId}" data-value="${i}">${i <= avg ? "★" : "☆"}</span>`;
-  }
-  return starsHtml + ` <small>(${productRatings.length})</small>`;
-}
-
-
+// Inicializa ao carregar a página
+document.addEventListener("DOMContentLoaded", () => {
+  loadProducts(); // Chama loadProducts sem filtros iniciais
+  updateCartDisplay(); // Garante que o carrinho seja exibido corretamente
+});

@@ -22,32 +22,43 @@
   </main>
 
   <script>
-    document.getElementById("loginForm").addEventListener("submit", function (e) {
+    const API_URL = "http://localhost:3000/api";
+
+    document.getElementById("loginForm").addEventListener("submit", async function (e) {
       e.preventDefault();
-      
+
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
 
-      const userData = localStorage.getItem("user_" + email);
-      if (!userData) {
-        alert("Usuário não encontrado. Verifique seu e-mail.");
-        return;
-      }
+      try {
+        const response = await fetch(`${API_URL}/auth/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        });
 
-      const user = JSON.parse(userData);
+        const data = await response.json();
 
-      if (user.password !== password) {
-        alert("Senha incorreta.");
-        return;
-      }
+        if (response.ok) {
+          localStorage.setItem("authToken", data.token);
+          localStorage.setItem("currentUser", JSON.stringify(data.user)); // Armazena todos os dados do user, exceto a senha hash
 
-      localStorage.setItem("currentUser", JSON.stringify(user)); // Para manter a sessão
-      alert("Login bem-sucedido!");
+          alert(data.message);
 
-      if (user.accountType === "vendedor") {
-        window.location.href = "admin.html";
-      } else {
-        window.location.href = "index.html";
+          // Redireciona com base no tipo de conta
+          if (data.user.accountType === "vendedor") {
+            window.location.href = "painel-vendedor.html";
+          } else {
+            window.location.href = "index.html"; // Cliente vai para a página principal
+          }
+        } else {
+          alert(`Erro no login: ${data.message || response.statusText}`);
+        }
+      } catch (error) {
+        console.error("Erro de conexão no login:", error);
+        alert("Erro de conexão ao tentar fazer login. Tente novamente.");
       }
     });
   </script>

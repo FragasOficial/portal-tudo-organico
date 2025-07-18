@@ -8,9 +8,19 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
+  <header>
+    <h1>Checkout</h1>
+    <button onclick="window.location='index.html'">Voltar à Loja</button>
+  </header>
+
   <main class="form-container">
     <h2>Finalizar Compra</h2>
-    <div id="checkoutSummary"></div>
+    <div id="checkoutSummary">
+        <h3>Seu Carrinho</h3>
+        <div id="checkoutItems"></div>
+        <p><strong id="totalPrice"></strong></p>
+    </div>
+
 
     <h3>Forma de Pagamento</h3>
     <form id="paymentForm">
@@ -19,273 +29,126 @@
       <label><input type="radio" name="payment" value="pix" /> PIX</label><br/>
       <label><input type="radio" name="payment" value="dinheiro" /> Dinheiro / Retirar no Local</label><br/><br/>
 
-      <button type="submit">Finalizar Pedido</button>
+      <button type="submit" id="finalizarCompra">Finalizar Pedido</button>
     </form>
 
     <div id="receipt" class="hidden"></div>
   </main>
 
   <script>
-    document.getElementById("finalizarCompra").addEventListener("click", () => {
-    const user = JSON.parse(localStorage.getItem("currentUser"));
-    const cart = JSON.parse(localStorage.getItem("cart") || "{}");
-    const allPurchases = JSON.parse(localStorage.getItem("purchases") || "[]");
-    const products = JSON.parse(localStorage.getItem("products") || "[]");
-
-    const items = [];
-    let total = 0;
-
-    const vendedoresInfo = {};
-
-    for (const key in cart) {
-        const item = cart[key];
-        const vendedor = products.find(p => p.id === item.product.id);
-        const vEmail = vendedor.vendedorEmail;
-
-        if (!vendedoresInfo[vEmail]) {
-        vendedoresInfo[vEmail] = {
-            endereco: vendedor.vendedorEndereco || "Endereço não informado",
-            telefone: vendedor.vendedorTelefone || "Telefone não informado",
-            produtos: [],
-        };
-        }
-
-        vendedoresInfo[vEmail].produtos.push({
-        nome: item.product.name,
-        quantidade: item.quantity,
-        preco: item.product.price,
-        });
-
-        items.push({
-        id: item.product.id,
-        name: item.product.name,
-        price: item.product.price,
-        quantity: item.quantity
-        });
-
-        total += item.product.price * item.quantity;
-    }
-
-    const purchase = {
-        userEmail: user.email,
-        items,
-        total,
-        date: Date.now()
-    };
-
-    allPurchases.push(purchase);
-    localStorage.setItem("purchases", JSON.stringify(allPurchases));
-    localStorage.removeItem("cart");
-
-    // Geração do recibo
-    let reciboHTML = `<p><strong>Cliente:</strong> ${user.email}</p>`;
-    reciboHTML += `<p><strong>Data:</strong> ${new Date().toLocaleString()}</p>`;
-
-    for (const vendedor in vendedoresInfo) {
-        const dados = vendedoresInfo[vendedor];
-        reciboHTML += `<hr><p><strong>Vendedor:</strong> ${vendedor}</p>`;
-        reciboHTML += `<p><strong>Endereço:</strong> ${dados.endereco}</p>`;
-        reciboHTML += `<p><strong>Telefone:</strong> ${dados.telefone}</p>`;
-        reciboHTML += `<ul>`;
-        dados.produtos.forEach(p => {
-        reciboHTML += `<li>${p.nome} - ${p.quantidade} x R$ ${p.preco.toFixed(2)} = R$ ${(p.quantidade * p.preco).toFixed(2)}</li>`;
-        });
-        reciboHTML += `</ul>`;
-    }
-
-    reciboHTML += `<h3>Total da compra: R$ ${total.toFixed(2)}</h3>`;
-
-    document.getElementById("conteudoRecibo").innerHTML = reciboHTML;
-    document.getElementById("recibo").style.display = "block";
-
-    // Gerar o PDF automaticamente
-    html2pdf().from(document.getElementById("recibo")).save("recibo_tudo_organico.pdf");
-
-    setTimeout(() => {
-        alert("Compra finalizada com sucesso!");
-        window.location.href = "historico.html";
-    }, 1000);
-    });
-
+    const API_URL = "http://localhost:3000/api";
     const cart = JSON.parse(localStorage.getItem("checkoutCart") || "[]");
-    const users = Object.keys(localStorage)
-      .filter(key => key.startsWith("user_"))
-      .map(key => JSON.parse(localStorage.getItem(key)));
+    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+    const token = localStorage.getItem("authToken");
 
-    const sellersInCart = {};
-
-    cart.forEach(item => {
-      const seller = users.find(u => u.accountType === "vendedor" && u.city === item.city && u.state === item.state);
-      const sellerKey = seller?.email || "desconhecido";
-
-      if (!sellersInCart[sellerKey]) {
-        sellersInCart[sellerKey] = {
-          seller,
-          items: [],
-          total: 0
-        };
-      }
-
-      const subtotal = item.qty * item.price;
-      sellersInCart[sellerKey].items.push(item);
-      sellersInCart[sellerKey].total += subtotal;
-    });
-
-    const summaryDiv = document.getElementById("checkoutSummary");
-    let totalCompra = 0;
-    summaryDiv.innerHTML = "";
-
-    for (const key in sellersInCart) {
-      const section = document.createElement("div");
-      const v = sellersInCart[key];
-      const contato = v.seller ? `
-        <p><strong>Vendedor:</strong> ${v.seller.firstName} ${v.seller.lastName}</p>
-        <p><strong>Endereço:</strong> ${v.seller.address}</p>
-        <p><strong>Telefone:</strong> ${v.seller.phone}</p>
-        <p><strong>Cidade/UF:</strong> ${v.seller.city}/${v.seller.state}</p>
-        <p><strong>Entrega:</strong> Grátis até 5 km (simulado)</p>
-      ` : "<p><em>Vendedor não identificado</em></p>";
-
-      const listaProdutos = v.items.map(item => `<li>${item.name} x${item.qty} = R$ ${(item.qty * item.price).toFixed(2)}</li>`).join("");
-
-      totalCompra += v.total;
-
-      section.innerHTML = `
-        <hr/>
-        ${contato}
-        <ul>${listaProdutos}</ul>
-        <p><strong>Subtotal: R$ ${v.total.toFixed(2)}</strong></p>
-      `;
-      summaryDiv.appendChild(section);
+    // Redireciona se não estiver logado
+    if (!currentUser || !token) {
+        alert("Você precisa estar logado para finalizar a compra.");
+        location.href = "login.html";
     }
 
-    const totalEl = document.createElement("p");
-    totalEl.innerHTML = `<strong>Total da Compra: R$ ${totalCompra.toFixed(2)}</strong>`;
-    summaryDiv.appendChild(totalEl);
+    function displayCartSummary() {
+      const container = document.getElementById("checkoutItems");
+      const totalDisplay = document.getElementById("totalPrice");
 
-    document.getElementById("paymentForm").addEventListener("submit", function (e) {
-      e.preventDefault();
+      let total = 0;
 
-      const paymentType = document.querySelector("input[name='payment']:checked").value;
-      const receipt = document.getElementById("receipt");
-
-      let message = `<h3>Recibo de Compra</h3><p>Forma de pagamento: <strong>${paymentType.toUpperCase()}</strong></p>`;
-      message += summaryDiv.innerHTML;
-
-      if (paymentType === "dinheiro") {
-        message += `<p><strong>Pagamento em espécie no local</strong>. Leve o valor exato e retire com o vendedor.</p>`;
-      } else {
-        message += `<p><strong>Pagamento digital simulado</strong>. (Fictício)</p>`;
+      if (cart.length === 0) {
+        container.innerHTML = "<p>Seu carrinho está vazio.</p>";
+        totalDisplay.textContent = "Total: R$ 0,00";
+        document.getElementById("finalizarCompra").disabled = true; // Desabilita botão se carrinho vazio
+        return;
       }
 
-      receipt.innerHTML = message;
-      receipt.classList.remove("hidden");
-
-      // Envio simulado de e-mail ao vendedor (console)
-      for (const key in sellersInCart) {
-        const seller = sellersInCart[key].seller;
-        if (seller) {
-          console.log(`📧 E-mail enviado para ${seller.email}: Nova compra! Total: R$ ${sellersInCart[key].total.toFixed(2)}`);
-        }
-      }
-
-      localStorage.removeItem("checkoutCart"); // Limpa carrinho
-    });
-
-    // Prepara carrinho vindo do modal/cart
-    if (!cart.length) {
-      alert("Seu carrinho está vazio.");
-      window.location.href = "index.html";
-    }
-  </script>
-  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places"></script>
-<script>
-  async function calcularDistancia(origem, destino, callback) {
-    const service = new google.maps.DistanceMatrixService();
-
-    service.getDistanceMatrix(
-      {
-        origins: [origem],
-        destinations: [destino],
-        travelMode: google.maps.TravelMode.DRIVING
-      },
-      (response, status) => {
-        if (status === "OK") {
-          const distanceText = response.rows[0].elements[0].distance.text;
-          const distanceValue = response.rows[0].elements[0].distance.value / 1000; // km
-          callback(distanceValue, distanceText);
-        } else {
-          console.error("Erro ao calcular distância:", status);
-          callback(null, "Erro");
-        }
-      }
-    );
-  }
-
-  function renderEntregaParaCadaVendedor(clienteEndereco) {
-    for (const key in sellersInCart) {
-      const vendedor = sellersInCart[key].seller;
-      const index = Object.keys(sellersInCart).indexOf(key);
-      const section = document.querySelectorAll("#checkoutSummary > div")[index];
-
-      if (!vendedor) continue;
-
-      calcularDistancia(clienteEndereco, vendedor.address, (km, texto) => {
-        let entregaTexto = "";
-        if (km <= 5 || vendedor.freeDelivery) {
-            entregaTexto = `Entrega grátis (${texto})`;
-            } else {
-            entregaTexto = `Entrega com taxa (distância: ${texto})`;
-            }
+      let html = '<ul>';
+      cart.forEach(item => {
+        const subtotal = item.quantity * item.price;
+        total += subtotal;
+        html += `<li>${item.name} - ${item.quantity} x R$ ${item.price.toFixed(2)} = R$ ${subtotal.toFixed(2)}</li>`;
       });
+      html += '</ul>';
+      container.innerHTML = html;
+      totalDisplay.textContent = `Total: R$ ${total.toFixed(2)}`;
     }
-  }
 
-  // Exemplo de endereço do cliente (simulado)
-  const clienteEndereco = JSON.parse(localStorage.getItem("currentUser"))?.address || "São Paulo, SP";
+    document.getElementById("paymentForm").addEventListener("submit", async (e) => {
+      e.preventDefault(); // Impede o envio padrão do formulário
 
-  // Aguarda carregamento do Maps antes de iniciar cálculo
-  window.addEventListener("load", () => {
-    renderEntregaParaCadaVendedor(clienteEndereco);
-  });
+      if (cart.length === 0) {
+          alert("Seu carrinho está vazio. Adicione produtos antes de finalizar a compra.");
+          return;
+      }
 
-  document.getElementById("finalizarCompra").addEventListener("click", () => {
-  const user = JSON.parse(localStorage.getItem("currentUser"));
-  const cart = JSON.parse(localStorage.getItem("cart") || "{}");
-  const allPurchases = JSON.parse(localStorage.getItem("purchases") || "[]");
+      if (!token) {
+          alert("Você precisa estar logado para comprar.");
+          location.href = "login.html"; // Redireciona para login se o token sumir
+          return;
+      }
 
-  const items = [];
-  let total = 0;
+      try {
+        const res = await fetch(`${API_URL}/orders`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}` // Inclui o token de autorização
+          },
+          body: JSON.stringify({ items: cart }) // Envia os itens do carrinho
+        });
 
-  for (const key in cart) {
-    const item = cart[key];
-    items.push({
-      id: item.product.id,
-      name: item.product.name,
-      price: item.product.price,
-      quantity: item.quantity
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.message || "Erro ao finalizar pedido.");
+        }
+
+        // Pedido bem-sucedido
+        localStorage.removeItem("checkoutCart"); // Limpa o carrinho local
+        alert("Pedido finalizado com sucesso!");
+        generateReceipt(); // Gera o recibo
+        document.getElementById("finalizarCompra").disabled = true; // Desabilita o botão após a compra
+        // location.href = "historico.html"; // Opcional: redireciona para o histórico
+      } catch (err) {
+        console.error("Erro ao finalizar pedido:", err);
+        alert(`Erro ao finalizar pedido: ${err.message}`);
+      }
     });
-    total += item.product.price * item.quantity;
-  }
 
-  const purchase = {
-    userEmail: user.email,
-    items,
-    total,
-    date: Date.now()
-  };
+    function generateReceipt() {
+        const receiptDiv = document.getElementById("receipt");
+        receiptDiv.classList.remove("hidden");
+        let total = 0;
 
-  allPurchases.push(purchase);
-  localStorage.setItem("purchases", JSON.stringify(allPurchases));
-  localStorage.removeItem("cart");
+        let receiptContent = `
+            <h3>Recibo da Compra</h3>
+            <p>Data: ${new Date().toLocaleString()}</p>
+            <p>Cliente: ${currentUser.firstName} ${currentUser.lastName}</p>
+            <h4>Itens:</h4>
+            <ul>
+        `;
+        cart.forEach(item => {
+            const subtotal = item.quantity * item.price;
+            total += subtotal;
+            receiptContent += `<li>${item.name} - ${item.quantity} x R$ ${item.price.toFixed(2)} = R$ ${subtotal.toFixed(2)}</li>`;
+        });
+        receiptContent += `
+            </ul>
+            <h4>Total Pago: R$ ${total.toFixed(2)}</h4>
+            <p>Forma de Pagamento: ${document.querySelector('input[name="payment"]:checked').value}</p>
+            <p>Obrigado pela sua compra no Tudo Orgânico!</p>
+        `;
+        receiptDiv.innerHTML = receiptContent;
 
-  alert("Compra finalizada com sucesso!");
-  window.location.href = "historico.html";
-});
-</script>
-<div id="recibo" style="display:none; background:#fff; padding:20px; font-size:14px;">
-  <h2>Recibo de Compra - Tudo Orgânico</h2>
-  <div id="conteudoRecibo"></div>
-</div>
+        // Gerar PDF
+        html2pdf(receiptDiv, {
+            margin: 10,
+            filename: 'recibo_tudo_organico.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        });
+    }
+
+    // Inicializa ao carregar a página
+    document.addEventListener("DOMContentLoaded", displayCartSummary);
+  </script>
 </body>
 </html>

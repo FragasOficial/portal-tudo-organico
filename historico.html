@@ -7,65 +7,151 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <header>
+    <h1>Histórico de Compras</h1>
+    <button onclick="logout()">Sair</button>
+  </header>
+
   <main class="container">
-    <h2>Histórico de Compras</h2>
+    <h2>Suas Compras Anteriores</h2>
     <div id="purchaseHistory"></div>
   </main>
 
   <script>
-    const user = JSON.parse(localStorage.getItem("currentUser"));
-    const allPurchases = JSON.parse(localStorage.getItem("purchases") || "[]");
-    const ratings = JSON.parse(localStorage.getItem("ratings") || "{}");
+    const API_URL = "http://localhost:3000/api";
+    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+    const token = localStorage.getItem("authToken");
 
-    const userPurchases = allPurchases.filter(p => p.userEmail === user.email);
-    const container = document.getElementById("purchaseHistory");
+    // Redireciona se não for cliente ou não estiver logado
+    if (!currentUser || currentUser.accountType !== "cliente" || !token) {
+      alert("Acesso restrito aos clientes. Por favor, faça login.");
+      location.href = "login.html";
+    }
 
-    if (userPurchases.length === 0) {
-      container.innerHTML = "<p>Nenhuma compra realizada ainda.</p>";
-    } else {
-      userPurchases.forEach((purchase, index) => {
+    function logout() {
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("currentUser");
+      location.href = "login.html";
+    }
+
+    async function loadHistorico() {
+      try {
+        const response = await fetch(`${API_URL}/orders/me`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const userOrders = await response.json();
+        renderHistorico(userOrders);
+      } catch (err) {
+        console.error("Erro ao carregar histórico:", err);
+        document.getElementById("purchaseHistory").innerHTML = "<p>Erro ao buscar histórico de compras.</p>";
+      }
+    }
+
+    function renderHistorico(purchases) {
+      const container = document.getElementById("purchaseHistory");
+      container.innerHTML = ""; // Limpa o conteúdo existente
+
+      if (purchases.length === 0) {
+        container.innerHTML = "<p>Nenhuma compra realizada ainda.</p>";
+        return;
+      }
+
+      purchases.forEach(order => { // Renomeado purchase para order para consistência com o backend
         const div = document.createElement("div");
         div.className = "purchase";
+        const orderDate = new Date(order.orderDate).toLocaleString(); // Usando orderDate
 
-        const dataCompra = new Date(purchase.date).toLocaleString();
+        let itemsHtml = order.items.map(item => `
+          <li>
+            <img src="${item.image}" alt="${item.name}" style="width: 50px; height: 50px; object-fit: cover; margin-right: 10px;">
+            ${item.name} - ${item.quantity} x R$ ${item.unitPrice.toFixed(2)} = R$ ${(item.quantity * item.unitPrice).toFixed(2)}
+            <br>Avaliar:
+            <span class="stars" data-product-id="${item.productId}" data-current-rating="0">☆☆☆☆☆</span>
+          </li>
+        `).join('');
 
-        let html = `<h3>Compra #${index + 1} - ${dataCompra}</h3><ul>`;
+        div.innerHTML = `
+          <h3>Compra #${order.id} - ${orderDate}</h3>
+          <ul>${itemsHtml}</ul>
+          <strong>Total: R$ ${order.total.toFixed(2)}</strong>
+        `;
+        container.appendChild(div);
+      });
 
-        purchase.items.forEach(item => {
-          const alreadyRated = ratings[item.id]?.length > 0;
-          html += `
-            <li>
-              ${item.name} - R$ ${item.price} x ${item.quantity}
-              <br>
-              ${alreadyRated ? "Avaliação enviada" : renderStars(item.id)}
-            </li>`;
+      // Adiciona event listeners para as estrelas após renderizar
+      attachStarRatingListeners();
+    }
+
+    // Função para anexar listeners de rating
+    function attachStarRatingListeners() {
+      document.querySelectorAll(".stars").forEach(starContainer => {
+        const productId = starContainer.getAttribute("data-product-id");
+        // Aqui você pode carregar a avaliação existente do usuário para este produto se houver
+        // Por exemplo, uma nova rota /api/ratings/my?productId=X
+        // const currentRating = ratings[productId] || 0;
+        // renderStars(starContainer, currentRating);
+
+        starContainer.addEventListener("mouseover", (e) => {
+          if (e.target.tagName === 'SPAN' && e.target.closest('.stars') === starContainer) {
+            const index = Array.from(starContainer.children).indexOf(e.target);
+            for (let i = 0; i <= 4; i++) {
+              starContainer.children[i].textContent = i <= index ? '★' : '☆';
+            }
+          }
         });
 
-        html += `</ul><strong>Total: R$ ${purchase.total.toFixed(2)}</strong>`;
-        div.innerHTML = html;
-        container.appendChild(div);
+        starContainer.addEventListener("mouseout", () => {
+          // Voltar ao estado original ou à avaliação salva
+          const currentRating = parseInt(starContainer.getAttribute("data-current-rating"));
+          for (let i = 0; i <= 4; i++) {
+              starContainer.children[i].textContent = i < currentRating ? '★' : '☆';
+          }
+        });
+
+        starContainer.addEventListener("click", async (e) => {
+          if (e.target.tagName === 'SPAN' && e.target.closest('.stars') === starContainer) {
+            const newRating = Array.from(starContainer.children).indexOf(e.target) + 1;
+            try {
+              const response = await fetch(`${API_URL}/orders/avaliar`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({ productId: parseInt(productId), stars: newRating })
+              });
+
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || response.statusText);
+              }
+
+              alert("Avaliação registrada com sucesso!");
+              starContainer.setAttribute("data-current-rating", newRating); // Atualiza a avaliação salva visualmente
+              // Opcional: recarregar o histórico ou atualizar a estrela permanentemente
+            } catch (err) {
+              console.error("Erro ao avaliar produto:", err);
+              alert(`Erro ao avaliar produto: ${err.message}`);
+            }
+          }
+        });
+
+        // Renderiza as estrelas no estado inicial (não avaliado)
+        for(let i=0; i<5; i++) {
+            const starSpan = document.createElement('span');
+            starSpan.textContent = '☆';
+            starContainer.appendChild(starSpan);
+        }
       });
     }
 
-    function renderStars(productId) {
-      let stars = "";
-      for (let i = 1; i <= 5; i++) {
-        stars += `<span class="star" data-id="${productId}" data-value="${i}">☆</span>`;
-      }
-      return `<div class="rating">${stars}</div>`;
-    }
-
-    document.addEventListener("click", function (e) {
-      if (e.target.classList.contains("star")) {
-        const productId = e.target.getAttribute("data-id");
-        const value = parseInt(e.target.getAttribute("data-value"));
-
-        if (!ratings[productId]) ratings[productId] = [];
-        ratings[productId].push(value);
-        localStorage.setItem("ratings", JSON.stringify(ratings));
-        location.reload();
-      }
-    });
+    // Inicializa ao carregar a página
+    document.addEventListener("DOMContentLoaded", loadHistorico);
   </script>
 
   <style>
@@ -73,15 +159,36 @@
       border: 1px solid #ccc;
       border-radius: 12px;
       padding: 1em;
-      margin: 1em 0;
-      background: #f6fff6;
+      margin-bottom: 15px;
+      background: var(--white);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    .rating {
-      font-size: 1.3em;
-      color: #ffb400;
+    .purchase h3 {
+      margin-top: 0;
+      color: var(--green);
     }
-    .star {
+    .purchase ul {
+      list-style: none;
+      padding: 0;
+    }
+    .purchase li {
+      padding: 8px 0;
+      border-bottom: 1px dashed var(--gray);
+      display: flex;
+      align-items: center;
+    }
+    .purchase li:last-child {
+      border-bottom: none;
+    }
+    .stars {
+      color: #ffb400; /* Cor das estrelas */
+      font-size: 1.2em;
       cursor: pointer;
+    }
+    .stars span {
+        display: inline-block;
+        width: 1.2em; /* Garante que cada estrela tenha o mesmo espaçamento */
+        text-align: center;
     }
   </style>
 </body>

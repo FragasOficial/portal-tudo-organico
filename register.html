@@ -22,65 +22,129 @@
       <label for="password">Senha:</label>
       <input type="password" id="password" required />
 
+      <label for="confirmPassword">Confirmar Senha:</label>
+      <input type="password" id="confirmPassword" required />
+
       <label for="phone">Celular / WhatsApp:</label>
       <input type="tel" id="phone" required />
 
       <label for="address">Endereço:</label>
       <input type="text" id="address" required />
 
-      <label for="accountType">Tipo de Conta:</label>
-      <div id="freeDeliveryBox" style="display: none;">
-        <label>
-            <input type="checkbox" id="freeDelivery" />
-            Oferecer entrega grátis além de 5 km?
-        </label>
-      </div>
+      <label for="state">Estado (UF):</label>
+      <select id="state" required>
+        <option value="">Selecione o Estado</option>
+      </select>
 
+      <label for="city">Cidade:</label>
+      <select id="city" required>
+        <option value="">Selecione a Cidade</option>
+      </select>
+
+      <label for="accountType">Tipo de Conta:</label>
       <select id="accountType" required>
         <option value="">Selecione</option>
         <option value="cliente">Cliente</option>
         <option value="vendedor">Vendedor</option>
       </select>
 
+      <div id="sellerOptions" style="display: none;">
+        <label>
+          <input type="checkbox" id="freeDelivery" />
+          Oferecer entrega grátis além de 5 km?
+        </label>
+      </div>
+
       <button type="submit">Cadastrar</button>
     </form>
     <p>Já tem uma conta? <a href="login.html">Entrar</a></p>
   </main>
 
+  <script src="estados-cidades.js"></script>
   <script>
-    document.getElementById("registerForm").addEventListener("submit", function (e) {
+    const API_URL = "http://localhost:3000/api";
+    const form = document.getElementById("registerForm");
+    const accountTypeSelect = document.getElementById("accountType");
+    const sellerOptionsDiv = document.getElementById("sellerOptions");
+    const stateSelect = document.getElementById("state");
+    const citySelect = document.getElementById("city");
+
+    // Popula estados
+    for (let uf in estadosCidades) {
+      stateSelect.innerHTML += `<option value="${uf}">${uf}</option>`;
+    }
+
+    // Atualiza cidades ao mudar o estado
+    stateSelect.addEventListener("change", () => {
+      const uf = stateSelect.value;
+      citySelect.innerHTML = '<option value="">Selecione a Cidade</option>';
+      if (uf && estadosCidades[uf]) {
+        estadosCidades[uf].forEach(city => {
+          citySelect.innerHTML += `<option value="${city}">${city}</option>`;
+        });
+      }
+    });
+
+    // Exibir/esconder opções de vendedor
+    accountTypeSelect.addEventListener("change", function (e) {
+      const isSeller = e.target.value === "vendedor";
+      sellerOptionsDiv.style.display = isSeller ? "block" : "none";
+      // Se não for vendedor, desmarca e desabilita a entrega grátis para não enviar no JSON
+      document.getElementById("freeDelivery").checked = isSeller ? document.getElementById("freeDelivery").checked : false;
+      document.getElementById("freeDelivery").disabled = !isSeller;
+    });
+
+    form.addEventListener("submit", async function (e) {
       e.preventDefault();
+
+      const password = document.getElementById("password").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
+
+      if (password !== confirmPassword) {
+        alert("As senhas não coincidem!");
+        return;
+      }
 
       const user = {
         firstName: document.getElementById("firstName").value,
         lastName: document.getElementById("lastName").value,
         email: document.getElementById("email").value,
-        password: document.getElementById("password").value,
+        password: password, // Envia a senha em texto claro, será hashed no backend
         phone: document.getElementById("phone").value,
         address: document.getElementById("address").value,
-        accountType: document.getElementById("accountType").value
+        state: stateSelect.value, // Captura estado
+        city: citySelect.value,   // Captura cidade
+        accountType: accountTypeSelect.value,
+        freeDelivery: document.getElementById("freeDelivery")?.checked || false
       };
 
-      localStorage.setItem("user_" + user.email, JSON.stringify(user));
-      alert("Cadastro realizado com sucesso!");
-      window.location.href = "login.html";
+      if (!user.accountType) {
+        alert("Selecione o tipo de conta.");
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/auth/register`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(user),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          alert(data.message);
+          window.location.href = "login.html"; // Redireciona após sucesso
+        } else {
+          alert(`Erro ao cadastrar: ${data.message || response.statusText}`);
+        }
+      } catch (error) {
+        console.error("Erro no cadastro:", error);
+        alert("Erro de conexão ao tentar cadastrar. Tente novamente.");
+      }
     });
-    const user = {
-  firstName: document.getElementById("firstName").value,
-  lastName: document.getElementById("lastName").value,
-  email: document.getElementById("email").value,
-  password: document.getElementById("password").value,
-  phone: document.getElementById("phone").value,
-  address: document.getElementById("address").value,
-  accountType: document.getElementById("accountType").value,
-  freeDelivery: document.getElementById("freeDelivery")?.checked || false
-};
-
-document.getElementById("accountType").addEventListener("change", (e) => {
-  const isSeller = e.target.value === "vendedor";
-  document.getElementById("freeDeliveryBox").style.display = isSeller ? "block" : "none";
-});
-
   </script>
 </body>
 </html>

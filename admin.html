@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -20,10 +21,17 @@
       <input type="url" id="productImage" required />
 
       <label>Estado (UF):</label>
-      <input type="text" id="productState" maxlength="2" required />
+      <select id="productState" required>
+        <option value="">Selecione</option>
+        <option value="SP">SP</option>
+        <option value="RJ">RJ</option>
+        <option value="MG">MG</option>
+        <option value="RS">RS</option>
+        <option value="BA">BA</option>
+      </select>
 
       <label>Cidade:</label>
-      <input type="text" id="productCity" required />
+      <select id="productCity" required></select>
 
       <button type="submit">Adicionar Produto</button>
     </form>
@@ -32,7 +40,28 @@
     <ul id="productList"></ul>
   </main>
 
-  <script>
+  <script src="estados-cidades.js"></script>
+<script>
+    /* carregado externamente */
+
+    //   "SP": ["São Paulo", "Campinas", "Santos"],
+    //   "RJ": ["Rio de Janeiro", "Niterói", "Petrópolis"],
+    //   "MG": ["Belo Horizonte", "Uberlândia", "Contagem"],
+    //   "RS": ["Porto Alegre", "Caxias do Sul", "Pelotas"],
+    //   "BA": ["Salvador", "Feira de Santana", "Vitória da Conquista"]
+    // };
+
+    document.getElementById("productState").addEventListener("change", function() {
+      const uf = this.value;
+      const citySelect = document.getElementById("productCity");
+      citySelect.innerHTML = "<option value=''>Selecione a cidade</option>";
+      if (uf && estadosCidades[uf]) {
+        estadosCidades[uf].forEach(city => {
+          citySelect.innerHTML += `<option value="${city}">${city}</option>`;
+        });
+      }
+    });
+
     const currentUser = JSON.parse(localStorage.getItem("currentUser"));
     if (!currentUser || currentUser.accountType !== "vendedor") {
       alert("Acesso negado. Faça login como vendedor.");
@@ -43,59 +72,54 @@
     const productList = document.getElementById("productList");
 
     let vendorProducts = JSON.parse(localStorage.getItem("vendor_" + currentUser.email)) || [];
+    let allProducts = JSON.parse(localStorage.getItem("products") || "[]");
+
+    function generateProductId() {
+      return Date.now();
+    }
 
     function renderVendorProducts() {
       productList.innerHTML = "";
       vendorProducts.forEach((product, index) => {
         const li = document.createElement("li");
-        const timerId = `timer-${index}`;
         li.innerHTML = `
           <img src="${product.image}" alt="${product.name}" width="100" />
           <div><strong>${product.name}</strong> - R$ ${product.price.toFixed(2)}</div>
           <div>${product.city}/${product.state}</div>
-          <div id="${timerId}" class="timer">05:00</div>
           <button onclick="removeProduct(${index})">Remover</button>
         `;
         productList.appendChild(li);
-        startCountdown(timerId, 5 * 60); // 5 minutos
       });
-    }
-
-    function startCountdown(elementId, seconds) {
-      const el = document.getElementById(elementId);
-      let time = seconds;
-
-      const interval = setInterval(() => {
-        const min = Math.floor(time / 60).toString().padStart(2, '0');
-        const sec = (time % 60).toString().padStart(2, '0');
-        el.textContent = `${min}:${sec}`;
-
-        if (time <= 0) clearInterval(interval);
-        time--;
-      }, 1000);
     }
 
     productForm.addEventListener("submit", function (e) {
       e.preventDefault();
-      const product = {
+      const newProduct = {
+        id: generateProductId(),
         name: document.getElementById("productName").value,
         price: parseFloat(document.getElementById("productPrice").value),
         image: document.getElementById("productImage").value,
-        state: document.getElementById("productState").value.toUpperCase(),
-        city: document.getElementById("productCity").value
+        state: document.getElementById("productState").value,
+        city: document.getElementById("productCity").value,
+        vendedorEmail: currentUser.email
       };
-      vendorProducts.push(product);
+
+      vendorProducts.push(newProduct);
       localStorage.setItem("vendor_" + currentUser.email, JSON.stringify(vendorProducts));
+
+      allProducts.push(newProduct);
+      localStorage.setItem("products", JSON.stringify(allProducts));
+
       productForm.reset();
       renderVendorProducts();
     });
 
     function removeProduct(index) {
-      if (confirm("Deseja remover este produto?")) {
-        vendorProducts.splice(index, 1);
-        localStorage.setItem("vendor_" + currentUser.email, JSON.stringify(vendorProducts));
-        renderVendorProducts();
-      }
+      const removed = vendorProducts.splice(index, 1)[0];
+      localStorage.setItem("vendor_" + currentUser.email, JSON.stringify(vendorProducts));
+      allProducts = allProducts.filter(p => p.id !== removed.id);
+      localStorage.setItem("products", JSON.stringify(allProducts));
+      renderVendorProducts();
     }
 
     renderVendorProducts();
