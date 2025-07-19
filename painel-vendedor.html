@@ -171,10 +171,11 @@
       const body = {
         name: document.getElementById("name").value,
         price: parseFloat(document.getElementById("price").value),
-        imageUrl: document.getElementById("imageUrl").value,
+        image: document.getElementById("imageUrl").value, // <- aqui
         city: document.getElementById("city").value,
         state: document.getElementById("state").value
       };
+
 
       try {
         const response = await fetch(`${API_URL}/products`, {
@@ -271,5 +272,84 @@
       loadMyProducts();
     });
   </script>
+  <script>
+  // 🔐 Segredo temporário para testes — deve ser igual ao do backend
+  const secret = 'seuSegredoJWT123';
+
+  // Gera novo token se não houver um ou se estiver expirado
+  function gerarTokenJWTTeste() {
+    // Verificar se já existe token válido
+    const tokenExistente = localStorage.getItem("token");
+
+    if (tokenExistente) {
+      try {
+        const payload = JSON.parse(atob(tokenExistente.split('.')[1]));
+        const exp = payload.exp * 1000;
+        const agora = Date.now();
+
+        if (exp > agora) {
+          console.log("✅ Token ainda válido");
+          return;
+        } else {
+          console.warn("⚠️ Token expirado. Será gerado novo.");
+        }
+      } catch (e) {
+        console.warn("⚠️ Token inválido. Será gerado novo.");
+      }
+    }
+
+    // Payload fixo para testes
+    const payload = {
+      id: 1,
+      email: "sfptc06@gmail.com",
+      accountType: "vendedor",
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 60 * 60 * 12 // 12h
+    };
+
+    // Função para codificar em base64url
+    function base64url(source) {
+      return btoa(JSON.stringify(source))
+        .replace(/=/g, '')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_');
+    }
+
+    // Header
+    const header = {
+      alg: "HS256",
+      typ: "JWT"
+    };
+
+    const unsignedToken = `${base64url(header)}.${base64url(payload)}`;
+
+    // ⚠️ Simula assinatura — apenas para testes (NÃO seguro em produção!)
+    async function gerarAssinaturaFake() {
+      const encoder = new TextEncoder();
+      const key = await crypto.subtle.importKey(
+        "raw",
+        encoder.encode(secret),
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["sign"]
+      );
+      const assinatura = await crypto.subtle.sign("HMAC", key, encoder.encode(unsignedToken));
+      const hashArray = Array.from(new Uint8Array(assinatura));
+      const assinaturaB64 = btoa(String.fromCharCode(...hashArray))
+        .replace(/=/g, '')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_');
+      return assinaturaB64;
+    }
+
+    gerarAssinaturaFake().then(signature => {
+      const token = `${unsignedToken}.${signature}`;
+      localStorage.setItem("token", token);
+      console.log("✅ Novo token JWT gerado e salvo:", token);
+    });
+  }
+
+  gerarTokenJWTTeste();
+</script>
 </body>
 </html>

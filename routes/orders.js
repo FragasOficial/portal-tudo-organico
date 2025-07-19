@@ -1,16 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const authController = require('../controllers/authController'); // Supondo que 'controllers' é a pasta dos controladores
+const { placeOrder, getMyOrders, getSellerOrders, rateProduct } = require('../controllers/orderController');
+const auth = require('../middleware/authMiddleware'); // Certifique-se de que é 'middleware' (singular) aqui.
 
-router.post('/register', authController.register);
-router.post('/login', authController.login);
+// Cliente realiza compra
+router.post('/', auth.verifyToken, placeOrder);
+
+// Cliente vê seus pedidos
+router.get('/me', auth.verifyToken, getMyOrders);
+
+// Vendedor vê seus pedidos recebidos
+router.get('/seller', auth.verifyToken, getSellerOrders);
+
+// Cliente avalia produto
+router.post('/avaliar', auth.verifyToken, rateProduct);
 
 module.exports = router;
-
-const { verifyToken } = require('../middlewares/authMiddleware'); // Exemplo de caminho
-router.post('/products', verifyToken, productController.createProduct);
-router.delete('/products/:id', verifyToken, productController.deleteProduct);
-router.post('/orders', verifyToken, orderController.placeOrder);
-router.get('/orders/me', verifyToken, orderController.getMyOrders);
-router.get('/orders/seller', verifyToken, orderController.getSellerOrders);
-router.post('/orders/avaliar', verifyToken, orderController.rateProduct);

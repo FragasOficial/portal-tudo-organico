@@ -1,37 +1,40 @@
+// const jwt = require('jsonwebtoken');
+
+// exports.verifyToken = (req, res, next) => {
+//   const authHeader = req.headers['authorization'];
+
+//   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+//     return res.status(401).json({ message: 'Token não fornecido.' });
+//   }
+
+//   const token = authHeader.split(' ')[1];
+
+//   try {
+//     const decoded = jwt.verify(token, process.env.JWT_SECRET); // JWT_SECRET deve estar no .env
+//     req.user = decoded; // O controlador pode agora acessar req.user.id, req.user.accountType, etc.
+//     next();
+//   } catch (err) {
+//     console.error('Erro ao verificar token:', err);
+//     return res.status(403).json({ message: 'Token inválido ou expirado.' });
+//   }
+// };
+
 const jwt = require('jsonwebtoken');
 
 exports.verifyToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  if (!authHeader) return res.sendStatus(401);
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Token não fornecido.' });
+  }
 
   const token = authHeader.split(' ')[1];
-  if (!token) return res.sendStatus(403);
 
   try {
-    const user = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = user;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
     next();
   } catch (err) {
-    return res.status(403).json({ message: 'Token inválido.' });
-  }
-};
-
-require('dotenv').config(); // Adicionado para carregar variáveis de ambiente
-const jwt = require('jsonwebtoken');
-
-exports.verifyToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  if (!authHeader) return res.status(401).json({ message: 'Token não fornecido. Acesso negado.' });
-
-  const token = authHeader.split(' ')[1];
-  if (!token) return res.status(403).json({ message: 'Formato de token inválido.' });
-
-  try {
-    const user = jwt.verify(token, process.env.JWT_SECRET); // Usando variável de ambiente
-    req.user = user; // Anexa o payload do token ao objeto da requisição
-    next(); // Continua para a próxima função middleware/rota
-  } catch (err) {
-    console.error("Erro de verificação de token:", err.message);
-    return res.status(403).json({ message: 'Token inválido ou expirado.' });
+    console.error('Erro ao verificar token:', err);
+    res.status(403).json({ message: 'Token inválido.' });
   }
 };

@@ -8,7 +8,7 @@ CREATE TABLE Users (
   firstName NVARCHAR(100),
   lastName NVARCHAR(100),
   email NVARCHAR(255) UNIQUE,
-  password NVARCHAR(255),
+  passwordHash NVARCHAR(255), -- Renomeado para consistência
   phone NVARCHAR(20),
   address NVARCHAR(255),
   accountType NVARCHAR(20),
@@ -16,14 +16,16 @@ CREATE TABLE Users (
 );
 
 CREATE TABLE Products (
-  id INT PRIMARY KEY IDENTITY,
-  name NVARCHAR(100),
-  price DECIMAL(10,2),
-  image NVARCHAR(500),
-  state NVARCHAR(2),
-  city NVARCHAR(100),
-  vendedorId INT,
-  FOREIGN KEY (vendedorId) REFERENCES Users(id)
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    name NVARCHAR(255) NOT NULL,
+    price DECIMAL(10, 2) NOT NULL,
+    image NVARCHAR(255) NOT NULL, -- URL da imagem
+    city NVARCHAR(100) NOT NULL,
+    state NVARCHAR(2) NOT NULL,
+    vendedorId INT NOT NULL, -- Chave estrangeira para a tabela Users (vendedor)
+    createdAt DATETIME DEFAULT GETDATE(),
+    updatedAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (vendedorId) REFERENCES Users(id) -- Garante que vendedorId existe na tabela Users
 );
 
 CREATE TABLE Orders (

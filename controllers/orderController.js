@@ -1,70 +1,63 @@
-// controllers/authController.js
-const db = require('../models/db'); // Importa o módulo db.js completo
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+// controllers/orderController.js
+const db = require('../models/db'); // Supondo que você tem um arquivo db.js em 'models'
 
-exports.register = async (req, res) => {
-  const { firstName, lastName, email, password, phone, address, city, state, accountType, freeDelivery } = req.body;
-
-  try {
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Obtém a pool de conexão de forma assíncrona
-    const pool = await db.getPool();
-    // Cria uma nova requisição a partir da pool
-    const request = pool.request();
-
-    // *** MUITO IMPORTANTE: Previne SQL Injection usando parâmetros ***
-    request.input('firstName', db.sql.NVarChar(100), firstName);
-    request.input('lastName', db.sql.NVarChar(100), lastName);
-    request.input('email', db.sql.NVarChar(255), email);
-    request.input('passwordHash', db.sql.NVarChar(255), hashedPassword);
-    request.input('phone', db.sql.NVarChar(20), phone);
-    request.input('address', db.sql.NVarChar(255), address);
-    request.input('city', db.sql.NVarChar(100), city);
-    request.input('state', db.sql.NVarChar(2), state);
-    request.input('accountType', db.sql.NVarChar(20), accountType);
-    request.input('freeDelivery', db.sql.Bit, freeDelivery ? 1 : 0);
-
-    await request.query(`
-      INSERT INTO Users (firstName, lastName, email, passwordHash, phone, address, city, state, accountType, freeDelivery)
-      VALUES (@firstName, @lastName, @email, @passwordHash, @phone, @address, @city, @state, @accountType, @freeDelivery)
-    `);
-
-    res.status(201).json({ message: 'Usuário cadastrado com sucesso!' });
-  } catch (error) {
-    console.error("Erro no registro:", error);
-    res.status(500).json({ message: 'Erro ao cadastrar usuário.', error: error.message });
-  }
+exports.placeOrder = async (req, res) => {
+  // Lógica para finalizar um pedido
+  // Exemplo:
+  // const { userId, items, total } = req.body;
+  // try {
+  //   const pool = await db.getPool();
+  //   // Inserir na tabela Orders e OrderItems
+  //   res.status(201).json({ message: 'Pedido realizado com sucesso!' });
+  // } catch (error) {
+  //   console.error(error);
+  //   res.status(500).json({ message: 'Erro ao realizar pedido.' });
+  // }
+  res.status(200).json({ message: 'Rota de pedido funcionando (placeholder)!' });
 };
 
-exports.login = async (req, res) => {
-  const { email, password } = req.body;
+exports.getMyOrders = async (req, res) => {
+  // Lógica para buscar os pedidos do usuário logado
+  // Exemplo:
+  // const userId = req.user.id; // Supondo que o ID do usuário está no token
+  // try {
+  //   const pool = await db.getPool();
+  //   // Buscar pedidos do userId
+  //   res.json([]); // Retornar uma lista de pedidos
+  // } catch (error) {
+  //   console.error(error);
+  //   res.status(500).json({ message: 'Erro ao buscar meus pedidos.' });
+  // }
+  res.status(200).json({ message: 'Rota para meus pedidos funcionando (placeholder)!' });
+};
 
-  try {
-    const pool = await db.getPool();
-    const request = pool.request();
-    request.input('email', db.sql.NVarChar(255), email);
+exports.getSellerOrders = async (req, res) => {
+  // Lógica para buscar os pedidos recebidos por um vendedor
+  // Exemplo:
+  // const sellerId = req.user.id; // Supondo que o ID do vendedor está no token
+  // try {
+  //   const pool = await db.getPool();
+  //   // Buscar pedidos para produtos do vendedorId
+  //   res.json([]); // Retornar uma lista de pedidos
+  // } catch (error) {
+  //   console.error(error);
+  //   res.status(500).json({ message: 'Erro ao buscar pedidos do vendedor.' });
+  // }
+  res.status(200).json({ message: 'Rota para pedidos do vendedor funcionando (placeholder)!' });
+};
 
-    const result = await request.query(`
-      SELECT * FROM Users WHERE email = @email
-    `);
-
-    const user = result.recordset[0];
-    if (!user) return res.status(404).json({ message: 'Usuário não encontrado.' });
-
-    const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) return res.status(401).json({ message: 'Senha inválida.' });
-
-    const token = jwt.sign(
-      { id: user.id, email: user.email, accountType: user.accountType },
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' }
-    );
-
-    res.json({ token, user: { id: user.id, email: user.email, firstName: user.firstName, accountType: user.accountType } });
-  } catch (error) {
-    console.error("Erro no login:", error);
-    res.status(500).json({ message: 'Erro ao fazer login.', error: error.message });
-  }
+exports.rateProduct = async (req, res) => {
+  // Lógica para registrar a avaliação de um produto
+  // Exemplo:
+  // const { productId, rating } = req.body;
+  // const userId = req.user.id;
+  // try {
+  //   const pool = await db.getPool();
+  //   // Inserir na tabela Ratings
+  //   res.status(200).json({ message: 'Produto avaliado com sucesso!' });
+  // } catch (error) {
+  //   console.error(error);
+  //   res.status(500).json({ message: 'Erro ao avaliar produto.' });
+  // }
+  res.status(200).json({ message: 'Rota de avaliação de produto funcionando (placeholder)!' });
 };
