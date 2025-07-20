@@ -7,7 +7,7 @@ exports.placeOrder = async (req, res) => {
   // const { userId, items, total } = req.body;
   // try {
   //   const pool = await db.getPool();
-  //   // Inserir na tabela Orders e OrderItems
+  //   // Inserir na tabela dbo.Orders e dbo.OrderItems
   //   res.status(201).json({ message: 'Pedido realizado com sucesso!' });
   // } catch (error) {
   //   console.error(error);
@@ -22,7 +22,7 @@ exports.getMyOrders = async (req, res) => {
   // const userId = req.user.id; // Supondo que o ID do usuário está no token
   // try {
   //   const pool = await db.getPool();
-  //   // Buscar pedidos do userId
+  //   // Buscar pedidos do userId na tabela dbo.Orders
   //   res.json([]); // Retornar uma lista de pedidos
   // } catch (error) {
   //   console.error(error);
@@ -37,7 +37,7 @@ exports.getSellerOrders = async (req, res) => {
   // const sellerId = req.user.id; // Supondo que o ID do vendedor está no token
   // try {
   //   const pool = await db.getPool();
-  //   // Buscar pedidos para produtos do vendedorId
+  //   // Buscar pedidos para produtos do vendedorId na tabela dbo.OrderItems e dbo.Produtos
   //   res.json([]); // Retornar uma lista de pedidos
   // } catch (error) {
   //   console.error(error);
@@ -53,11 +53,11 @@ exports.rateProduct = async (req, res) => {
   // const userId = req.user.id;
   // try {
   //   const pool = await db.getPool();
-  //   // Inserir na tabela Ratings
-  //   res.status(200).json({ message: 'Produto avaliado com sucesso!' });
+  //   // Inserir na tabela dbo.Ratings
+  //   res.status(201).json({ message: 'Avaliação registrada com sucesso!' });
   // } catch (error) {
   //   console.error(error);
   //   res.status(500).json({ message: 'Erro ao avaliar produto.' });
   // }
-  res.status(200).json({ message: 'Rota de avaliação de produto funcionando (placeholder)!' });
+  res.status(200).json({ message: 'Rota para avaliação de produto funcionando (placeholder)!' });
 };

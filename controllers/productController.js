@@ -28,16 +28,34 @@ exports.createProduct = async (req, res) => {
     const pool = await db.getPool();
 
     const request = pool.request();
-    request.input('Nome', sql.VarChar, name);
-    request.input('Preco', sql.Decimal(10, 2), price);
-    request.input('Imagem', sql.VarChar, image);
-    request.input('Cidade', sql.VarChar, city);
-    request.input('Estado', sql.VarChar, state);
-    request.input('VendedorId', sql.Int, user.id);
+//     request.input('Nome', sql.VarChar, name);
+//     request.input('Preco', sql.Decimal(10, 2), price);
+//     request.input('Imagem', sql.VarChar, image);
+//     request.input('Cidade', sql.VarChar, city);
+//     request.input('Estado', sql.VarChar, state);
+//     request.input('VendedorId', sql.Int, user.id);
+
+//     await request.query(`
+//       INSERT INTO Produtos (Nome, Preco, Imagem, Cidade, Estado, VendedorId)
+//       VALUES (@Nome, @Preco, @Imagem, @Cidade, @Estado, @VendedorId)
+//     `);
+
+//     res.status(201).json({ message: 'Produto cadastrado com sucesso.' });
+//   } catch (error) {
+//     console.error('❌ Erro ao cadastrar produto:', error);
+//     res.status(500).json({ message: 'Erro ao cadastrar produto.' });
+//   }
+// };
+    request.input('name', sql.NVarChar(255), name);
+    request.input('price', sql.Decimal(10, 2), price);
+    request.input('image', sql.NVarChar(255), image);
+    request.input('city', sql.NVarChar(100), city);
+    request.input('state', sql.NVarChar(2), state);
+    request.input('vendedorId', sql.Int, user.id); // Este já estava correto como 'vendedorId'
 
     await request.query(`
-      INSERT INTO Produtos (Nome, Preco, Imagem, Cidade, Estado, VendedorId)
-      VALUES (@Nome, @Preco, @Imagem, @Cidade, @Estado, @VendedorId)
+      INSERT INTO Produtos (name, price, image, city, state, vendedorId)
+      VALUES (@name, @price, @image, @city, @state, @vendedorId)
     `);
 
     res.status(201).json({ message: 'Produto cadastrado com sucesso.' });

@@ -30,6 +30,8 @@
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
 
+      // console.log("Token recebido:", data.token);
+
       try {
         const response = await fetch(`${API_URL}/auth/login`, {
           method: "POST",
@@ -40,6 +42,16 @@
         });
 
         const data = await response.json();
+        console.log("TOKEN RECEBIDO:", data.token); // <== ADICIONE ISSO
+
+        if (response.ok && data.token) {
+          localStorage.setItem("authToken", data.token);
+          localStorage.setItem("currentUser", JSON.stringify(data.user));
+          // redirecionar etc.
+        }
+
+
+        // const data = await response.json();
 
         if (response.ok) {
           localStorage.setItem("authToken", data.token);
