@@ -3,6 +3,9 @@
   --white: #ffffff;
   --gray: #f0f0f0;
   --shadow: rgba(0, 0, 0, 0.1);
+  --blue: #007bff;
+  --red: #dc3545;
+  --light-gray: #e9ecef;
 }
 
 body {
@@ -23,12 +26,70 @@ header {
   gap: 10px;
 }
 
+header h1 {
+  margin: 0;
+  flex-basis: 100%;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
 header input,
 header select,
 header button {
-  padding: 5px;
+  padding: 8px 12px;
   border-radius: 5px;
   border: none;
+  font-size: 1em;
+  margin: 2px 0;
+}
+
+header button {
+  background: #4CAF50;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+header button:hover {
+  background-color: #45a049;
+}
+
+/* Estilo para o botão "Adicionar ao Carrinho" */
+.add-to-cart-btn {
+  background-color: var(--blue); /* Azul vibrante */
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1em;
+  font-weight: bold;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  margin-top: auto;
+}
+
+.add-to-cart-btn:hover {
+  background-color: #0056b3;
+  transform: translateY(-2px);
+}
+
+.add-to-cart-btn:active {
+  transform: translateY(0);
+}
+
+
+/* Campos de busca e filtros no header */
+#searchInput,
+#stateFilter,
+#cityFilter {
+  flex-grow: 1;
+  max-width: 250px;
+}
+
+#cartIcon {
+  font-size: 1.8em;
+  cursor: pointer;
+  margin-left: 10px;
 }
 
 #productList {
@@ -52,31 +113,299 @@ header button {
   height: 150px;
   object-fit: cover;
   border-radius: 6px;
+  margin-bottom: 10px;
 }
 
-#cartModal {
+/* --- ALTERAÇÕES PARA DIMINUIR O ESPAÇAMENTO --- */
+.product-card h3,
+.product-card p {
+  margin: 2px 0; /* Margem vertical reduzida para 2px */
+}
+/* ----------------------------------------------- */
+
+/* Estilos de modais (carrinho e pagamento) */
+#cartModal,
+#paymentModal {
   position: fixed;
   top: 0; left: 0;
   right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: none;
+  background: rgba(0, 0, 0, 0.6); /* Fundo mais escuro */
+  display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
 }
 
-#cartModal .modal-content {
+#cartModal .modal-content,
+#paymentModal .modal-content {
   background: var(--white);
-  padding: 20px;
+  padding: 25px; /* Aumenta padding */
   width: 90%;
-  max-width: 400px;
-  border-radius: 10px;
+  max-width: 550px; /* Aumenta largura máxima */
+  border-radius: 12px; /* Cantos mais arredondados */
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3); /* Sombra mais pronunciada */
+  position: relative;
+  animation: fadeIn 0.3s ease-out; /* Adiciona animação */
 }
 
-#cartModal.show {
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+#cartModal.hidden,
+#paymentModal.hidden {
+  display: none;
+}
+
+/* Estilos para os itens do carrinho */
+#cartItems {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 15px;
+  border: 1px solid var(--light-gray); /* Borda sutil */
+  border-radius: 8px;
+  padding-right: 5px; /* Espaço para a scrollbar */
+}
+
+.cart-item {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 5px;
+  border-bottom: 1px solid #eee;
 }
 
+.cart-item:last-child {
+  border-bottom: none;
+}
+
+.cart-item-info {
+  display: flex;
+  align-items: center;
+  flex-basis: calc(100% - 120px); /* Ajusta para deixar espaço para controles */
+  margin-bottom: 5px; /* Reduz margem */
+  font-size: 0.95em;
+  font-weight: bold;
+}
+
+.cart-item-img {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 5px;
+  margin-right: 10px;
+  border: 1px solid #ddd;
+}
+
+.cart-item-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Reduz gap */
+  flex-basis: 120px; /* Largura definida para os controles */
+  justify-content: flex-end;
+}
+
+.quantity-control {
+  display: flex;
+  align-items: center;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.quantity-btn {
+  background-color: var(--light-gray);
+  border: none;
+  padding: 5px 8px; /* Ajusta padding */
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s;
+}
+
+.quantity-btn:hover {
+  background-color: #d0d0d0;
+}
+
+.quantity-input {
+  width: 35px; /* Ajusta largura */
+  text-align: center;
+  border: none;
+  padding: 5px 0;
+  font-size: 0.9em;
+  -moz-appearance: textfield;
+}
+
+.quantity-input::-webkit-outer-spin-button,
+.quantity-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.remove-from-cart-btn {
+  background-color: var(--red);
+  color: white;
+  border: none;
+  padding: 6px 10px; /* Ajusta padding */
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.8em; /* Ajusta tamanho da fonte */
+  transition: background-color 0.2s;
+}
+
+.remove-from-cart-btn:hover {
+  background-color: #c82333;
+}
+
+.cart-item-timer {
+  font-size: 0.75em; /* Fonte menor */
+  color: #888; /* Cor mais suave */
+  margin-top: 2px; /* Reduz margem */
+  flex-basis: 100%;
+  text-align: right;
+}
+
+#cartTotal {
+  font-weight: bold;
+  font-size: 1.3em; /* Aumenta um pouco */
+  margin-top: 15px; /* Mais espaço */
+  display: block;
+  text-align: right;
+  color: var(--green); /* Cor para o total */
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.modal-buttons button {
+  flex: 1; /* Faz os botões ocuparem espaço igual */
+  padding: 12px 15px;
+  font-size: 1.1em;
+  border-radius: 8px;
+  transition: background-color 0.3s ease;
+}
+
+.modal-buttons button:first-child {
+  background-color: #6c757d; /* Cinza para "Continuar Comprando" / "Voltar" */
+}
+
+.modal-buttons button:first-child:hover {
+  background-color: #5a6268;
+}
+
+#proceedToPaymentButton,
+#confirmPaymentButton {
+  background-color: var(--green);
+}
+
+#proceedToPaymentButton:hover,
+#confirmPaymentButton:hover {
+  background-color: #218838;
+}
+
+#proceedToPaymentButton:disabled,
+#confirmPaymentButton:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+/* --- ESTILOS PARA O MODAL DE PAGAMENTO --- */
+.payment-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 10px;
+  background-color: var(--light-gray);
+  border-radius: 8px;
+}
+
+.payment-option {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.payment-option input[type="radio"] {
+  margin-right: 10px;
+  transform: scale(1.2); /* Aumenta o rádio button */
+}
+
+.payment-option label {
+  font-weight: bold;
+  color: #555;
+  cursor: pointer;
+}
+
+.payment-details {
+  margin-top: 15px;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+}
+
+.payment-details label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.payment-details input[type="text"],
+.payment-details input[type="number"] {
+  width: calc(100% - 20px);
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 1em;
+}
+
+.card-expiry-cvv {
+  display: flex;
+  gap: 15px;
+}
+
+.card-expiry-cvv .input-group {
+  flex: 1;
+}
+
+.small-text {
+  font-size: 0.8em;
+  color: #777;
+  margin-top: 10px;
+}
+
+/* Copiar Pix button */
+#pixDetails button {
+  background-color: #17a2b8; /* Cor de informação */
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-size: 0.95em;
+}
+#pixDetails button:hover {
+  background-color: #138496;
+}
+
+/* Troco */
+#cashChange {
+  font-weight: bold;
+  color: var(--green);
+}
+
+/* Formulários genéricos */
 .form-container {
   max-width: 400px;
   margin: 40px auto;
@@ -158,34 +487,106 @@ form button {
 
 /* ====================== RESPONSIVIDADE ====================== */
 
-/* Smartphones */
+/* Smartphones (até 600px) */
 @media (max-width: 600px) {
   header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    padding: 15px;
+  }
+
+  header h1 {
+    margin-bottom: 15px;
+  }
+
+  header input,
+  header select,
+  header button {
+    width: 100%;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+    box-sizing: border-box;
+  }
+
+  #searchInput,
+  #stateFilter,
+  #cityFilter {
+    max-width: none;
+  }
+
+  #cartIcon {
+    margin-top: 10px;
+    font-size: 2em;
   }
 
   #productList {
     grid-template-columns: 1fr;
+    padding: 15px;
   }
 
   .product-card img {
-    height: 140px;
-  }
-
-  form input, form select, form button {
-    font-size: 16px;
+    height: 180px;
   }
 
   .form-container {
     margin: 20px;
+    padding: 15px;
+  }
+
+  .cart-item-controls {
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  .quantity-control {
+    margin-bottom: 10px;
+  }
+
+  /* Modal de Pagamento em telas pequenas */
+  #paymentModal .modal-content {
+    width: 95%;
+    padding: 15px;
+  }
+  .card-expiry-cvv {
+    flex-direction: column; /* Pilha os campos de cartão */
+    gap: 10px;
   }
 }
 
-/* Tablets */
+/* Tablets (601px a 900px) */
 @media (min-width: 601px) and (max-width: 900px) {
+  header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+  }
+
+  header h1 {
+    flex-basis: auto;
+    margin-bottom: 0;
+  }
+
+  header input,
+  header select,
+  header button {
+    flex-basis: auto;
+    margin: 0 5px;
+    font-size: 1em;
+  }
+
+  #searchInput {
+    flex-grow: 1;
+    max-width: 300px;
+  }
+
+  #stateFilter,
+  #cityFilter {
+    max-width: 150px;
+  }
+
   #productList {
     grid-template-columns: repeat(2, 1fr);
+    padding: 20px;
   }
 
   .product-card img {
@@ -193,28 +594,58 @@ form button {
   }
 }
 
-/* Notebooks e Desktops */
+/* Notebooks e Desktops (901px a 1440px) */
 @media (min-width: 901px) and (max-width: 1440px) {
   #productList {
     grid-template-columns: repeat(3, 1fr);
+    padding: 20px 30px;
+  }
+
+  .product-card img {
+    height: 180px;
   }
 }
 
-/* Telas grandes e Smart TVs */
+/* Telas grandes e Smart TVs (acima de 1441px) */
 @media (min-width: 1441px) {
   body {
     font-size: 1.1em;
   }
 
+  header {
+    padding: 15px 50px;
+    justify-content: center;
+    gap: 20px;
+  }
+
+  header h1 {
+    margin-right: 40px;
+  }
+
+  header input,
+  header select,
+  header button {
+    padding: 10px 15px;
+    font-size: 1.1em;
+  }
+
+  #searchInput {
+    max-width: 450px;
+  }
+
+  #stateFilter,
+  #cityFilter {
+    max-width: 220px;
+  }
+
   #productList {
     grid-template-columns: repeat(4, 1fr);
+    padding: 20px 50px;
+    max-width: 1600px;
+    margin: auto;
   }
 
   .product-card img {
     height: 200px;
-  }
-
-  header {
-    justify-content: center;
   }
 }

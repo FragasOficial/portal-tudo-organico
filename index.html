@@ -24,10 +24,77 @@
       <h2>Carrinho de Compras</h2>
       <ul id="cartItems"></ul>
       <p>Total: <span id="cartTotal">R$ 0,00</span></p>
-      <button onclick="closeCartModal()">Continuar comprando</button>
-      <button onclick="window.location='checkout.html'">Finalizar compra</button>
+      <div class="modal-buttons">
+        <button onclick="closeCartModal()">Continuar comprando</button>
+        <button id="proceedToPaymentButton">Finalizar compra</button>
+      </div>
     </div>
   </div>
+
+  <div id="paymentModal" class="hidden">
+    <div class="modal-content">
+      <h2>Selecione o Método de Pagamento</h2>
+      <p>Total a pagar: <span id="paymentTotal">R$ 0,00</span></p>
+
+      <div class="payment-options">
+        <div class="payment-option">
+          <input type="radio" id="paymentPix" name="paymentMethod" value="pix" checked>
+          <label for="paymentPix">Pix</label>
+        </div>
+        <div class="payment-option">
+          <input type="radio" id="paymentCreditCard" name="paymentMethod" value="creditCard">
+          <label for="paymentCreditCard">Cartão de Crédito</label>
+        </div>
+        <div class="payment-option">
+          <input type="radio" id="paymentDebitCard" name="paymentMethod" value="debitCard">
+          <label for="paymentDebitCard">Cartão de Débito</label>
+        </div>
+        <div class="payment-option">
+          <input type="radio" id="paymentCash" name="paymentMethod" value="cash">
+          <label for="paymentCash">Dinheiro Vivo</label>
+        </div>
+      </div>
+
+      <div id="pixDetails" class="payment-details">
+        <p>Escaneie o QR Code ou copie e cole o código Pix abaixo:</p>
+        <img src="https://via.placeholder.com/150?text=QR+Code+Pix" alt="QR Code Pix" style="display: block; margin: 10px auto;">
+        <input type="text" id="pixCode" value="00020126360014BR.GOV.BCB.PIX0114+55119999999995204000053039865802BR5913NomeRecebedor6008BRASILIA62070503***6304CA09" readonly>
+        <button onclick="copyPixCode()">Copiar Código Pix</button>
+        <p class="small-text">O pagamento via Pix tem um tempo limite. Por favor, pague dentro de 10 minutos.</p>
+      </div>
+
+      <div id="cardDetails" class="payment-details hidden">
+        <label for="cardNumber">Número do Cartão:</label>
+        <input type="text" id="cardNumber" placeholder="**** **** **** ****" maxlength="19">
+
+        <label for="cardName">Nome no Cartão:</label>
+        <input type="text" id="cardName" placeholder="Nome Completo">
+
+        <div class="card-expiry-cvv">
+          <div class="input-group">
+            <label for="cardExpiry">Validade (MM/AA):</label>
+            <input type="text" id="cardExpiry" placeholder="MM/AA" maxlength="5">
+          </div>
+          <div class="input-group">
+            <label for="cardCvv">CVV:</label>
+            <input type="text" id="cardCvv" placeholder="***" maxlength="4">
+          </div>
+        </div>
+      </div>
+
+      <div id="cashDetails" class="payment-details hidden">
+        <label for="cashAmountPaid">Valor Pago em Dinheiro:</label>
+        <input type="number" id="cashAmountPaid" placeholder="0.00" step="0.01" min="0">
+        <p>Troco: <span id="cashChange">R$ 0,00</span></p>
+      </div>
+
+      <div class="modal-buttons">
+        <button onclick="closePaymentModal()">Voltar</button>
+        <button id="confirmPaymentButton">Confirmar Pagamento</button>
+      </div>
+    </div>
+  </div>
+
 
   <script src="estados-cidades.js"></script>
   <script src="script.js"></script>
