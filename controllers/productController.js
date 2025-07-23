@@ -19,7 +19,7 @@ exports.getProducts = async (req, res) => {
 exports.createProduct = async (req, res) => {
   console.log('➡️ Cadastro de produto iniciado:', req.body);
 
-  const { name, price, image, city, state } = req.body;
+  const { name, price, image, city, state, nutritionalInfo } = req.body;
   const user = req.user;
 
   if (!user || user.accountType !== 'vendedor') {
@@ -36,10 +36,11 @@ exports.createProduct = async (req, res) => {
     request.input('city', sql.NVarChar(100), city);
     request.input('state', sql.NVarChar(2), state);
     request.input('vendedorId', sql.Int, user.id);
-
+    request.input('nutritionalInfo', sql.NVarChar(sql.MAX), nutritionalInfo || '');
+    
     await request.query(`
-      INSERT INTO Produtos (name, price, image, city, state, vendedorId)
-      VALUES (@name, @price, @image, @city, @state, @vendedorId)
+      INSERT INTO Produtos (name, price, image, city, state, vendedorId, nutritionalInfo)
+      VALUES (@name, @price, @image, @city, @state, @vendedorId, @nutritionalInfo)
     `);
 
     res.status(201).json({ message: 'Produto cadastrado com sucesso.' });

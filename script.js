@@ -68,6 +68,10 @@ function renderProducts(products) {
       <h3>${product.name}</h3>
       <p>R$ ${product.price ? parseFloat(product.price).toFixed(2) : 'N/A'}</p>
       <p>${product.city}/${product.state}</p>
+      <details>
+        <summary><strong>Ver Tabela Nutricional</strong></summary>
+        <p>${product.nutritionalInfo || 'Não informada.'}</p>
+      </details>
       <button class="add-to-cart-btn" data-product-id="${product.id}">Adicionar ao Carrinho</button>
     `;
     productListDiv.appendChild(productCard);
