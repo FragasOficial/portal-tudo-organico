@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -357,5 +357,261 @@
 
   gerarTokenJWTTeste();
 </script>
+</body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Painel do Vendedor - Tudo Orgânico</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Painel do Vendedor</h1>
+    <button onclick="logout()">Sair</button>
+  </header>
+
+  <main class="container">
+    <h2>📊 Estatísticas do Vendedor</h2>
+    <div class="dashboard">
+      <div class="card"><h3>🛍️ Total de Produtos Cadastrados</h3><p id="totalProductsCount">0</p></div>
+      <div class="card"><h3>📦 Pedidos Recebidos</h3><p id="totalSellerOrders">0</p></div>
+      <div class="card"><h3>💰 Total Faturado</h3><p id="totalRevenue">R$ 0,00</p></div>
+      <div class="card"><h3>🏆 Produto Mais Vendido</h3><p id="bestSellingProduct">N/A</p></div>
+      <div class="card"><h3>⭐ Avaliação Média</h3><p id="averageRating">0.0</p></div>
+    </div>
+  </main>
+
+  <section style="margin-top: 2em;">
+    <h2>📈 Gráfico de Vendas por Produto</h2>
+    <canvas id="graficoVendas" width="400" height="200"></canvas>
+  </section>
+
+  <section style="margin-top: 2em;" class="form-container">
+    <h2>➕ Adicionar Novo Produto</h2>
+    <form id="productForm">
+      <label for="name">Nome do Produto:</label>
+      <input type="text" id="name" required />
+
+      <label for="nutritionalInfo">Tabela Nutricional:</label>
+      <textarea id="nutritionalInfo" rows="4" placeholder="Ex: Calorias, proteínas, fibras..."></textarea>
+
+      <label for="price">Preço (R$):</label>
+      <input type="number" id="price" step="0.01" required />
+
+      <label for="imageUrl">Imagem (URL):</label>
+      <input type="url" id="imageUrl" required />
+
+      <label for="state">Estado (UF):</label>
+      <select id="state" required>
+        <option value="">Selecione</option>
+      </select>
+
+      <label for="city">Cidade:</label>
+      <select id="city" required>
+        <option value="">Selecione</option>
+      </select>
+
+      <button type="submit">Adicionar Produto</button>
+    </form>
+  </section>
+
+  <section style="margin-top: 2em;">
+    <h2>📦 Meus Produtos</h2>
+    <div id="myProductsList" class="product-grid"></div>
+  </section>
+
+  <script src="estados-cidades.js"></script>
+  <script>
+    const API_URL = "http://localhost:3000/api";
+    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+    const token = localStorage.getItem("authToken");
+
+    // Redireciona se não for vendedor ou não estiver logado
+    if (!currentUser || currentUser.accountType !== "vendedor" || !token) {
+      alert("Acesso restrito aos vendedores. Por favor, faça login.");
+      location.href = "login.html";
+    }
+
+    function logout() {
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("currentUser");
+      location.href = "login.html";
+    }
+
+    function populateLocationFilters() {
+      const stateSelect = document.getElementById("state");
+      const citySelect = document.getElementById("city");
+
+      for (let uf in estadosCidades) {
+        stateSelect.innerHTML += `<option value="${uf}">${uf}</option>`;
+      }
+
+      stateSelect.addEventListener("change", () => {
+        const uf = stateSelect.value;
+        citySelect.innerHTML = '<option value="">Selecione</option>';
+        if (uf && estadosCidades[uf]) {
+          estadosCidades[uf].forEach(city => {
+            citySelect.innerHTML += `<option value="${city}">${city}</option>`;
+          });
+        }
+      });
+    }
+
+    async function loadMyProducts() {
+      try {
+        const response = await fetch(`${API_URL}/products`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const products = await response.json();
+        const myProducts = products.filter(p => p.vendedorId === currentUser.id);
+        renderMyProducts(myProducts);
+        updateDashboardStats(myProducts);
+      } catch (err) {
+        console.error("Erro ao carregar seus produtos:", err);
+        document.getElementById("myProductsList").innerHTML = "<p>Erro ao carregar seus produtos.</p>";
+      }
+    }
+
+    function renderMyProducts(products) {
+      const container = document.getElementById("myProductsList");
+      container.innerHTML = "";
+      if (products.length === 0) {
+        container.innerHTML = "<p>Você não possui produtos cadastrados.</p>";
+        return;
+      }
+
+      products.forEach(p => {
+        const div = document.createElement("div");
+        div.className = "product-card";
+        div.innerHTML = `
+          <img src="${p.image}" alt="${p.name}" />
+          <h4>${p.name}</h4>
+          <p>R$ ${p.price.toFixed(2)}</p>
+          <p>${p.city}/${p.state}</p>
+          <button onclick="deleteProduct(${p.id})">Excluir</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    async function deleteProduct(id) {
+      if (!confirm("Tem certeza que deseja excluir este produto?")) return;
+
+      try {
+        const response = await fetch(`${API_URL}/products/${id}`, {
+          method: "DELETE",
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (response.ok) {
+          alert("Produto excluído com sucesso.");
+          loadMyProducts();
+        } else {
+          const errorData = await response.json();
+          alert(`Erro ao excluir produto: ${errorData.message || response.statusText}`);
+        }
+      } catch (err) {
+        console.error("Erro ao excluir produto:", err);
+        alert("Erro de conexão ao excluir produto.");
+      }
+    }
+
+    document.getElementById("productForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const body = {
+        name: document.getElementById("name").value,
+        price: parseFloat(document.getElementById("price").value),
+        image: document.getElementById("imageUrl").value,
+        city: document.getElementById("city").value,
+        state: document.getElementById("state").value,
+        nutritionalInfo: document.getElementById("nutritionalInfo").value
+      };
+
+      try {
+        const response = await fetch(`${API_URL}/products`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify(body)
+        });
+
+        if (response.ok) {
+          alert("Produto cadastrado com sucesso!");
+          e.target.reset();
+          loadMyProducts();
+        } else {
+          const errorData = await response.json();
+          alert(`Erro ao cadastrar produto: ${errorData.message || response.statusText}`);
+        }
+      } catch (err) {
+        console.error("Erro ao cadastrar produto:", err);
+        alert("Erro de conexão ao cadastrar produto.");
+      }
+    });
+
+    async function updateDashboardStats(myProducts) {
+      document.getElementById("totalProductsCount").textContent = myProducts.length;
+
+      try {
+        const ordersResponse = await fetch(`${API_URL}/orders/seller`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const sellerOrders = await ordersResponse.json();
+
+        document.getElementById("totalSellerOrders").textContent = sellerOrders.length;
+
+        let totalRevenue = 0;
+        const productSales = {};
+        sellerOrders.forEach(item => {
+          const subtotal = item.quantity * item.unitPrice;
+          totalRevenue += subtotal;
+          productSales[item.productName] = (productSales[item.productName] || 0) + item.quantity;
+        });
+        document.getElementById("totalRevenue").textContent = `R$ ${totalRevenue.toFixed(2)}`;
+
+        let bestProduct = "N/A";
+        let maxSales = 0;
+        for (const prodName in productSales) {
+          if (productSales[prodName] > maxSales) {
+            maxSales = productSales[prodName];
+            bestProduct = prodName;
+          }
+        }
+        document.getElementById("bestSellingProduct").textContent = bestProduct;
+        document.getElementById("averageRating").textContent = "4.5 (Simulado)";
+
+        const ctx = document.getElementById('graficoVendas').getContext('2d');
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: Object.keys(productSales),
+            datasets: [{
+              label: 'Quantidade Vendida',
+              data: Object.values(productSales),
+              backgroundColor: 'rgba(46, 125, 50, 0.6)',
+              borderColor: 'rgba(46, 125, 50, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            scales: { y: { beginAtZero: true } }
+          }
+        });
+      } catch (error) {
+        console.error("Erro ao carregar estatísticas do vendedor:", error);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      populateLocationFilters();
+      loadMyProducts();
+    });
+  </script>
 </body>
 </html>

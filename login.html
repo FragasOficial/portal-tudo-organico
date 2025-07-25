@@ -22,57 +22,42 @@
   </main>
 
   <script>
-    const API_URL = "http://localhost:3000/api";
+  const API_URL = "http://localhost:3000/api";
 
-    document.getElementById("loginForm").addEventListener("submit", async function (e) {
-      e.preventDefault();
+  document.getElementById("loginForm").addEventListener("submit", async function (e) {
+    e.preventDefault();
 
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
 
-      // console.log("Token recebido:", data.token);
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-      try {
-        const response = await fetch(`${API_URL}/auth/login`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
-        });
+      const data = await response.json();
+      if (response.ok && data.token) {
+        localStorage.setItem("authToken", data.token);
+        localStorage.setItem("currentUser", JSON.stringify(data.user));
 
-        const data = await response.json();
-        console.log("TOKEN RECEBIDO:", data.token); // <== ADICIONE ISSO
+        alert(data.message);
 
-        if (response.ok && data.token) {
-          localStorage.setItem("authToken", data.token);
-          localStorage.setItem("currentUser", JSON.stringify(data.user));
-          // redirecionar etc.
-        }
-
-
-        // const data = await response.json();
-
-        if (response.ok) {
-          localStorage.setItem("authToken", data.token);
-          localStorage.setItem("currentUser", JSON.stringify(data.user)); // Armazena todos os dados do user, exceto a senha hash
-
-          alert(data.message);
-
-          // Redireciona com base no tipo de conta
-          if (data.user.accountType === "vendedor") {
-            window.location.href = "painel-vendedor.html";
-          } else {
-            window.location.href = "index.html"; // Cliente vai para a página principal
-          }
+        if (data.user.accountType === "vendedor") {
+          window.location.href = "painel-vendedor.html";
         } else {
-          alert(`Erro no login: ${data.message || response.statusText}`);
+          window.location.href = "index.html";
         }
-      } catch (error) {
-        console.error("Erro de conexão no login:", error);
-        alert("Erro de conexão ao tentar fazer login. Tente novamente.");
+      } else {
+        alert(`Erro no login: ${data.message || response.statusText}`);
       }
-    });
-  </script>
+    } catch (error) {
+      console.error("Erro de conexão no login:", error);
+      alert("Erro de conexão ao tentar fazer login. Tente novamente.");
+    }
+  });
+</script>
+
 </body>
 </html>
