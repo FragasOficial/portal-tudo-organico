@@ -37,6 +37,7 @@
       <p>Total a pagar: <span id="paymentTotal">R$ 0,00</span></p>
 
       <div class="payment-options">
+        <!-- VERIFIQUE ESTA SEÇÃO COM MUITA ATENÇÃO -->
         <div class="payment-option">
           <input type="radio" id="paymentPix" name="paymentMethod" value="pix" checked>
           <label for="paymentPix">Pix</label>
@@ -57,8 +58,8 @@
 
       <div id="pixDetails" class="payment-details">
         <p>Escaneie o QR Code ou copie e cole o código Pix abaixo:</p>
-        <img src="https://via.placeholder.com/150?text=QR+Code+Pix" alt="QR Code Pix" style="display: block; margin: 10px auto;">
-        <input type="text" id="pixCode" value="00020126360014BR.GOV.BCB.PIX0114+55119999999995204000053039865802BR5913NomeRecebedor6008BRASILIA62070503***6304CA09" readonly>
+        <img id="pixQrCodeImage" src="https://via.placeholder.com/150?text=QR+Code+Pix" alt="QR Code Pix" style="display: block; margin: 10px auto; width: 150px; height: 150px; object-fit: contain;">
+        <input type="text" id="pixCode" value="Aguardando geração do Pix..." readonly>
         <button onclick="copyPixCode()">Copiar Código Pix</button>
         <p class="small-text">O pagamento via Pix tem um tempo limite. Por favor, pague dentro de 10 minutos.</p>
       </div>
@@ -91,6 +92,25 @@
       <div class="modal-buttons">
         <button onclick="closePaymentModal()">Voltar</button>
         <button id="confirmPaymentButton">Confirmar Pagamento</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Novo Modal para Ajustar Quantidade do Produto -->
+  <div id="quantityModal" class="hidden">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeQuantityModal()">&times;</span>
+      <h2>Ajustar Quantidade</h2>
+      <div id="quantityProductInfo" style="text-align: center; margin-bottom: 20px;">
+        <!-- Informações do produto serão inseridas aqui -->
+      </div>
+      <div class="quantity-modal-controls" style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+        <button onclick="changeQuantityModal(-1)">-</button>
+        <input type="number" id="quantityInputModal" value="1" min="1" style="width: 60px; text-align: center; padding: 8px; border-radius: 5px; border: 1px solid #ccc;">
+        <button onclick="changeQuantityModal(1)">+</button>
+      </div>
+      <div class="modal-buttons" style="margin-top: 20px;">
+        <button onclick="confirmQuantityModal()">Confirmar</button>
       </div>
     </div>
   </div>

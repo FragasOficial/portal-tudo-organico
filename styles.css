@@ -135,9 +135,10 @@ header button:hover {
 }
 /* ----------------------------------------------- */
 
-/* Estilos de modais (carrinho e pagamento) */
+/* Estilos de modais (carrinho, pagamento e quantidade) */
 #cartModal,
-#paymentModal {
+#paymentModal,
+#quantityModal { /* Adicionado #quantityModal */
   position: fixed;
   top: 0; left: 0;
   right: 0; bottom: 0;
@@ -149,7 +150,8 @@ header button:hover {
 }
 
 #cartModal .modal-content,
-#paymentModal .modal-content {
+#paymentModal .modal-content,
+#quantityModal .modal-content { /* Adicionado #quantityModal */
   background: var(--white);
   padding: 25px; /* Aumenta padding */
   width: 90%;
@@ -166,7 +168,8 @@ header button:hover {
 }
 
 #cartModal.hidden,
-#paymentModal.hidden {
+#paymentModal.hidden,
+#quantityModal.hidden { /* Adicionado #quantityModal */
   display: none;
 }
 
@@ -567,7 +570,8 @@ details p {
   }
 
   /* Modal de Pagamento em telas pequenas */
-  #paymentModal .modal-content {
+  #paymentModal .modal-content,
+  #quantityModal .modal-content { /* Adicionado #quantityModal */
     width: 95%;
     padding: 15px;
   }
@@ -617,6 +621,11 @@ details p {
   .product-card img {
     height: 160px;
   }
+
+  .modal-content {
+    width: 80%; /* Largura média do modal em tablets */
+    padding: 20px;
+  }
 }
 
 /* Notebooks e Desktops (901px a 1440px) */
@@ -628,6 +637,10 @@ details p {
 
   .product-card img {
     height: 180px;
+  }
+
+  .modal-content {
+    width: 60%; /* Largura do modal em desktops */
   }
 }
 
@@ -672,5 +685,9 @@ details p {
 
   .product-card img {
     height: 200px;
+  }
+
+  .modal-content {
+    width: 50%; /* Modal pode ser um pouco mais estreito em telas muito grandes */
   }
 }

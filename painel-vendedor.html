@@ -1,365 +1,3 @@
-<!-- <!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <title>Painel do Vendedor - Tudo Orgânico</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <link rel="stylesheet" href="styles.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
-  <header>
-    <h1>Painel do Vendedor</h1>
-    <button onclick="logout()">Sair</button>
-  </header>
-
-  <main class="container">
-    <h2>📊 Estatísticas do Vendedor</h2>
-    <div class="dashboard">
-      <div class="card"><h3>🛍️ Total de Produtos Cadastrados</h3><p id="totalProductsCount">0</p></div>
-      <div class="card"><h3>📦 Pedidos Recebidos</h3><p id="totalSellerOrders">0</p></div>
-      <div class="card"><h3>💰 Total Faturado</h3><p id="totalRevenue">R$ 0,00</p></div>
-      <div class="card"><h3>🏆 Produto Mais Vendido</h3><p id="bestSellingProduct">N/A</p></div>
-      <div class="card"><h3>⭐ Avaliação Média</h3><p id="averageRating">0.0</p></div>
-    </div>
-  </main>
-
-  <section style="margin-top: 2em;">
-    <h2>📈 Gráfico de Vendas por Produto (Exemplo - Precisa de dados reais da API)</h2>
-    <canvas id="graficoVendas" width="400" height="200"></canvas>
-  </section>
-
-  <section style="margin-top: 2em;" class="form-container">
-    <h2>➕ Adicionar Novo Produto</h2>
-    <form id="productForm">
-      <label for="name">Nome do Produto:</label>
-      <input type="text" id="name" required />
-
-      <label for="nutritionalInfo">Tabela Nutricional:</label>
-      <textarea id="nutritionalInfo" rows="4" placeholder="Ex: Calorias, proteínas, fibras..."></textarea>
-
-
-      <label for="price">Preço (R$):</label>
-      <input type="number" id="price" step="0.01" required />
-
-      <label for="imageUrl">Imagem (URL):</label>
-      <input type="url" id="imageUrl" required />
-
-      <label for="state">Estado (UF):</label>
-      <select id="state" required>
-        <option value="">Selecione</option>
-      </select>
-
-      <label for="city">Cidade:</label>
-      <select id="city" required>
-        <option value="">Selecione</option>
-      </select>
-
-      <button type="submit">Adicionar Produto</button>
-    </form>
-  </section>
-
-  <section style="margin-top: 2em;">
-    <h2>📦 Meus Produtos</h2>
-    <div id="myProductsList" class="product-grid">
-      </div>
-  </section>
-
-  <script src="estados-cidades.js"></script>
-  <script>
-    const API_URL = "http://localhost:3000/api";
-    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-    const token = localStorage.getItem("authToken");
-
-    // Redireciona se não for vendedor ou não estiver logado
-    if (!currentUser || currentUser.accountType !== "vendedor" || !token) {
-      alert("Acesso restrito aos vendedores. Por favor, faça login.");
-      location.href = "login.html";
-    }
-
-    function logout() {
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("currentUser");
-      location.href = "login.html";
-    }
-
-    // Popula filtros de estado/cidade para o formulário de adicionar produto
-    function populateLocationFilters() {
-      const stateSelect = document.getElementById("state");
-      const citySelect = document.getElementById("city");
-
-      for (let uf in estadosCidades) {
-        stateSelect.innerHTML += `<option value="${uf}">${uf}</option>`;
-      }
-
-      stateSelect.addEventListener("change", () => {
-        const uf = stateSelect.value;
-        citySelect.innerHTML = '<option value="">Selecione</option>';
-        if (uf && estadosCidades[uf]) {
-          estadosCidades[uf].forEach(city => {
-            citySelect.innerHTML += `<option value="${city}">${city}</option>`;
-          });
-        }
-      });
-    }
-
-    // Carregar produtos do vendedor da API
-    async function loadMyProducts() {
-      try {
-        const response = await fetch(`${API_URL}/products`, {
-          headers: {
-            "Authorization": `Bearer ${token}`
-          }
-        });
-        const products = await response.json();
-        // Filtra os produtos para mostrar apenas os do vendedor logado
-        const myProducts = products.filter(p => p.vendedorId === currentUser.id);
-        renderMyProducts(myProducts);
-        updateDashboardStats(myProducts); // Atualiza stats com base nos produtos
-      } catch (err) {
-        console.error("Erro ao carregar seus produtos:", err);
-        document.getElementById("myProductsList").innerHTML = "<p>Erro ao carregar seus produtos.</p>";
-      }
-    }
-
-    function renderMyProducts(products) {
-      const container = document.getElementById("myProductsList");
-      container.innerHTML = "";
-      if (products.length === 0) {
-        container.innerHTML = "<p>Você não possui produtos cadastrados.</p>";
-        return;
-      }
-
-      products.forEach(p => {
-        const div = document.createElement("div");
-        div.className = "product-card";
-        div.innerHTML = `
-          <img src="${p.image}" alt="${p.name}" />
-          <h4>${p.name}</h4>
-          <p>R$ ${p.price.toFixed(2)}</p>
-          <p>${p.city}/${p.state}</p>
-          <button onclick="deleteProduct(${p.id})">Excluir</button>
-        `;
-        container.appendChild(div);
-      });
-    }
-
-    // Deletar produto via API
-    async function deleteProduct(id) {
-      if (!confirm("Tem certeza que deseja excluir este produto?")) {
-        return;
-      }
-      try {
-        const response = await fetch(`${API_URL}/products/${id}`, {
-          method: "DELETE",
-          headers: {
-            "Authorization": `Bearer ${token}`
-          }
-        });
-        if (response.ok) {
-          alert("Produto excluído com sucesso.");
-          loadMyProducts(); // Recarrega a lista
-        } else {
-          const errorData = await response.json();
-          alert(`Erro ao excluir produto: ${errorData.message || response.statusText}`);
-        }
-      } catch (err) {
-        console.error("Erro ao excluir produto:", err);
-        alert("Erro de conexão ao excluir produto.");
-      }
-    }
-
-    // Adicionar produto via API
-    document.getElementById("productForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const body = {
-        name: document.getElementById("name").value,
-        price: parseFloat(document.getElementById("price").value),
-        image: document.getElementById("imageUrl").value,
-        city: document.getElementById("city").value,
-        state: document.getElementById("state").value,
-        nutritionalInfo: document.getElementById("nutritionalInfo").value
-      };
-
-
-
-      try {
-        const response = await fetch(`${API_URL}/products`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify(body)
-        });
-
-        if (response.ok) {
-          alert("Produto cadastrado com sucesso!");
-          e.target.reset(); // Limpa o formulário
-          loadMyProducts(); // Recarrega a lista de produtos
-        } else {
-          const errorData = await response.json();
-          alert(`Erro ao cadastrar produto: ${errorData.message || response.statusText}`);
-        }
-      } catch (err) {
-        console.error("Erro ao cadastrar produto:", err);
-        alert("Erro de conexão ao cadastrar produto.");
-      }
-    });
-
-    // Função para atualizar as estatísticas do dashboard (ainda sem dados reais da API para todos)
-    async function updateDashboardStats(myProducts) {
-        document.getElementById("totalProductsCount").textContent = myProducts.length;
-
-        try {
-            const ordersResponse = await fetch(`${API_URL}/orders/seller`, {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-            const sellerOrders = await ordersResponse.json();
-
-            document.getElementById("totalSellerOrders").textContent = sellerOrders.length;
-
-            let totalRevenue = 0;
-            const productSales = {}; // Para o produto mais vendido e gráfico
-            sellerOrders.forEach(item => {
-                const subtotal = item.quantity * item.unitPrice; // unitPrice agora
-                totalRevenue += subtotal;
-                productSales[item.productName] = (productSales[item.productName] || 0) + item.quantity;
-            });
-            document.getElementById("totalRevenue").textContent = `R$ ${totalRevenue.toFixed(2)}`;
-
-            // Calcular produto mais vendido
-            let bestProduct = "N/A";
-            let maxSales = 0;
-            for (const prodName in productSales) {
-                if (productSales[prodName] > maxSales) {
-                    maxSales = productSales[prodName];
-                    bestProduct = prodName;
-                }
-            }
-            document.getElementById("bestSellingProduct").textContent = bestProduct;
-
-            // Avaliação média (precisa de uma rota /api/products/average-rating ou calcular no frontend)
-            // Por enquanto, fica estático ou simulado
-            document.getElementById("averageRating").textContent = "4.5 (Simulado)"; // Placeholder
-
-            // Gráfico de vendas (exemplo, precisa de dados reais)
-            const ctx = document.getElementById('graficoVendas').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(productSales),
-                    datasets: [{
-                        label: 'Quantidade Vendida',
-                        data: Object.values(productSales),
-                        backgroundColor: 'rgba(46, 125, 50, 0.6)',
-                        borderColor: 'rgba(46, 125, 50, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: { beginAtZero: true }
-                    }
-                }
-            });
-
-
-        } catch (error) {
-            console.error("Erro ao carregar estatísticas do vendedor:", error);
-            // Mostrar mensagens de erro nos cards ou deixar como "N/A"
-        }
-    }
-
-
-    // Inicializa ao carregar a página
-    document.addEventListener("DOMContentLoaded", () => {
-      populateLocationFilters();
-      loadMyProducts();
-    });
-  </script>
-  <script>
-  // 🔐 Segredo temporário para testes — deve ser igual ao do backend
-  const secret = 'seuSegredoJWT123';
-
-  // Gera novo token se não houver um ou se estiver expirado
-  function gerarTokenJWTTeste() {
-    // Verificar se já existe token válido
-    const tokenExistente = localStorage.getItem("token");
-
-    if (tokenExistente) {
-      try {
-        const payload = JSON.parse(atob(tokenExistente.split('.')[1]));
-        const exp = payload.exp * 1000;
-        const agora = Date.now();
-
-        if (exp > agora) {
-          console.log("✅ Token ainda válido");
-          return;
-        } else {
-          console.warn("⚠️ Token expirado. Será gerado novo.");
-        }
-      } catch (e) {
-        console.warn("⚠️ Token inválido. Será gerado novo.");
-      }
-    }
-
-    // Payload fixo para testes
-    const payload = {
-      id: 1,
-      email: "sfptc06@gmail.com",
-      accountType: "vendedor",
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 60 * 60 * 12 // 12h
-    };
-
-    // Função para codificar em base64url
-    function base64url(source) {
-      return btoa(JSON.stringify(source))
-        .replace(/=/g, '')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_');
-    }
-
-    // Header
-    const header = {
-      alg: "HS256",
-      typ: "JWT"
-    };
-
-    const unsignedToken = `${base64url(header)}.${base64url(payload)}`;
-
-    // ⚠️ Simula assinatura — apenas para testes (NÃO seguro em produção!)
-    async function gerarAssinaturaFake() {
-      const encoder = new TextEncoder();
-      const key = await crypto.subtle.importKey(
-        "raw",
-        encoder.encode(secret),
-        { name: "HMAC", hash: "SHA-256" },
-        false,
-        ["sign"]
-      );
-      const assinatura = await crypto.subtle.sign("HMAC", key, encoder.encode(unsignedToken));
-      const hashArray = Array.from(new Uint8Array(assinatura));
-      const assinaturaB64 = btoa(String.fromCharCode(...hashArray))
-        .replace(/=/g, '')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_');
-      return assinaturaB64;
-    }
-
-    gerarAssinaturaFake().then(signature => {
-      const token = `${unsignedToken}.${signature}`;
-      localStorage.setItem("token", token);
-      console.log("✅ Novo token JWT gerado e salvo:", token);
-    });
-  }
-
-  gerarTokenJWTTeste();
-</script>
-</body>
-</html> -->
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -388,50 +26,62 @@
 
   <section style="margin-top: 2em;">
     <h2>📈 Gráfico de Vendas por Produto</h2>
-    <canvas id="graficoVendas" width="400" height="200"></canvas>
+    <canvas id="graficoVendas"></canvas>
   </section>
 
-  <section style="margin-top: 2em;" class="form-container">
-    <h2>➕ Adicionar Novo Produto</h2>
-    <form id="productForm">
-      <label for="name">Nome do Produto:</label>
-      <input type="text" id="name" required />
+  <!-- Seção Gerenciar Produtos com largura de 80% e centralizada -->
+  <section class="product-management" style="width: 80%; margin: 20px auto; padding: 20px; background-color: var(--white); border-radius: 8px; box-shadow: var(--shadow);">
+    <h2 style="text-align: center;">➕ Gerenciar Produtos</h2>
+    <!-- Formulário com display flex para centralizar o botão -->
+    <form id="productForm" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+      <input type="hidden" id="productId" />
+      <label for="name" style="width: 100%; text-align: left; margin-bottom: 5px; font-weight: bold;">Nome do Produto:</label>
+      <input type="text" id="name" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 1em;" />
 
-      <label for="nutritionalInfo">Tabela Nutricional:</label>
-      <textarea id="nutritionalInfo" rows="4" placeholder="Ex: Calorias, proteínas, fibras..."></textarea>
+      <label for="nutritionalInfo" style="width: 100%; text-align: left; margin-bottom: 5px; font-weight: bold;">Informações Nutricionais:</label>
+      <textarea id="nutritionalInfo" rows="4" placeholder="Ex: Sem glúten, rico em fibras..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 1em; resize: vertical;"></textarea>
 
-      <label for="price">Preço (R$):</label>
-      <input type="number" id="price" step="0.01" required />
+      <label for="price" style="width: 100%; text-align: left; margin-bottom: 5px; font-weight: bold;">Preço (R$):</label>
+      <input type="number" id="price" step="0.01" min="0" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 1em;" />
 
-      <label for="imageUrl">Imagem (URL):</label>
-      <input type="url" id="imageUrl" required />
+      <label for="imageUrl" style="width: 100%; text-align: left; margin-bottom: 5px; font-weight: bold;">URL da Imagem:</label>
+      <input type="url" id="imageUrl" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 1em;" />
 
-      <label for="state">Estado (UF):</label>
-      <select id="state" required>
+      <label for="state" style="width: 100%; text-align: left; margin-bottom: 5px; font-weight: bold;">Estado:</label>
+      <select id="state" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 1em;">
         <option value="">Selecione</option>
       </select>
 
-      <label for="city">Cidade:</label>
-      <select id="city" required>
+      <label for="city" style="width: 100%; text-align: left; margin-bottom: 5px; font-weight: bold;">Cidade:</label>
+      <select id="city" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 1em;">
         <option value="">Selecione</option>
       </select>
 
-      <button type="submit">Adicionar Produto</button>
+      <!-- Botão Adicionar Produto com largura de 25% e centralizado -->
+      <button type="submit" style="width: 25%; margin-top: 15px; padding: 10px 20px; background-color: var(--green); color: var(--white); border: none; border-radius: 5px; cursor: pointer; font-size: 1.1em; transition: background-color 0.3s ease; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">Adicionar Produto</button>
     </form>
   </section>
 
-  <section style="margin-top: 2em;">
-    <h2>📦 Meus Produtos</h2>
-    <div id="myProductsList" class="product-grid"></div>
+  <section class="my-products">
+    <h2>📋 Meus Produtos Cadastrados</h2>
+    <div id="myProductsList" class="product-grid">
+      <!-- Produtos do vendedor serão carregados aqui -->
+    </div>
   </section>
 
-  <script src="estados-cidades.js"></script>
+  <footer>
+    <p>&copy; 2024 Tudo Orgânico. Todos os direitos reservados.</p>
+  </footer>
+
+  <!-- Certifique-se de que estados-cidades.js está incluído ANTES deste script -->
+  <script src="estados-cidades.js"></script> 
   <script>
     const API_URL = "http://localhost:3000/api";
     const currentUser = JSON.parse(localStorage.getItem("currentUser"));
     const token = localStorage.getItem("authToken");
+    let editingProductId = null;
 
-    // Redireciona se não for vendedor ou não estiver logado
+    // Redirecionamento se não for vendedor ou não tiver token
     if (!currentUser || currentUser.accountType !== "vendedor" || !token) {
       alert("Acesso restrito aos vendedores. Por favor, faça login.");
       location.href = "login.html";
@@ -446,6 +96,9 @@
     function populateLocationFilters() {
       const stateSelect = document.getElementById("state");
       const citySelect = document.getElementById("city");
+
+      // Limpa as opções existentes (útil para re-população)
+      stateSelect.innerHTML = '<option value="">Selecione</option>'; 
 
       for (let uf in estadosCidades) {
         stateSelect.innerHTML += `<option value="${uf}">${uf}</option>`;
@@ -468,6 +121,7 @@
           headers: { "Authorization": `Bearer ${token}` }
         });
         const products = await response.json();
+        // Filtrar apenas os produtos do vendedor logado
         const myProducts = products.filter(p => p.vendedorId === currentUser.id);
         renderMyProducts(myProducts);
         updateDashboardStats(myProducts);
@@ -493,10 +147,48 @@
           <h4>${p.name}</h4>
           <p>R$ ${p.price.toFixed(2)}</p>
           <p>${p.city}/${p.state}</p>
+          <button class="edit-btn" onclick="editProduct(${p.id})">Editar</button>
           <button onclick="deleteProduct(${p.id})">Excluir</button>
         `;
         container.appendChild(div);
       });
+    }
+
+    async function editProduct(id) {
+        console.log(`Tentando editar produto com ID: ${id}`);
+        try {
+            const response = await fetch(`${API_URL}/products/${id}`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message || response.statusText}`);
+            }
+            const product = await response.json();
+            console.log("Dados do produto recebidos para edição:", product);
+
+            document.getElementById("name").value = product.name;
+            document.getElementById("nutritionalInfo").value = product.nutritionalInfo || "";
+            document.getElementById("price").value = product.price;
+            document.getElementById("imageUrl").value = product.image;
+            
+            const stateSelect = document.getElementById("state");
+            stateSelect.value = product.state;
+            
+            const event = new Event('change');
+            stateSelect.dispatchEvent(event);
+
+            setTimeout(() => {
+                document.getElementById("city").value = product.city;
+            }, 0);
+            
+            editingProductId = product.id;
+            document.querySelector("#productForm button[type='submit']").textContent = "Salvar Alterações";
+            alert("Produto carregado para edição!");
+        } catch (err) {
+            console.error("Erro ao carregar produto para edição:", err);
+            alert("Erro ao carregar produto para edição: " + err.message);
+        }
     }
 
     async function deleteProduct(id) {
@@ -532,32 +224,47 @@
       };
 
       try {
-        const response = await fetch(`${API_URL}/products`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify(body)
-        });
+        let response;
+        if (editingProductId) {
+          console.log(`Enviando PUT para produto com ID: ${editingProductId}`);
+          response = await fetch(`${API_URL}/products/${editingProductId}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(body)
+          });
+        } else {
+          console.log("Enviando POST para novo produto.");
+          response = await fetch(`${API_URL}/products`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(body)
+          });
+        }
 
         if (response.ok) {
-          alert("Produto cadastrado com sucesso!");
+          alert(editingProductId ? "Produto atualizado com sucesso!" : "Produto cadastrado com sucesso!");
           e.target.reset();
+          editingProductId = null;
+          document.querySelector("#productForm button[type='submit']").textContent = "Adicionar Produto";
           loadMyProducts();
         } else {
           const errorData = await response.json();
-          alert(`Erro ao cadastrar produto: ${errorData.message || response.statusText}`);
+          alert(`Erro ao salvar produto: ${errorData.message || response.statusText}`);
         }
       } catch (err) {
-        console.error("Erro ao cadastrar produto:", err);
-        alert("Erro de conexão ao cadastrar produto.");
+        console.error("Erro ao salvar produto:", err);
+        alert("Erro de conexão ao salvar produto.");
       }
     });
 
     async function updateDashboardStats(myProducts) {
       document.getElementById("totalProductsCount").textContent = myProducts.length;
-
       try {
         const ordersResponse = await fetch(`${API_URL}/orders/seller`, {
           headers: { "Authorization": `Bearer ${token}` }
@@ -587,7 +294,10 @@
         document.getElementById("averageRating").textContent = "4.5 (Simulado)";
 
         const ctx = document.getElementById('graficoVendas').getContext('2d');
-        new Chart(ctx, {
+        if (window.mySalesChart instanceof Chart) {
+          window.mySalesChart.destroy();
+        }
+        window.mySalesChart = new Chart(ctx, {
           type: 'bar',
           data: {
             labels: Object.keys(productSales),
@@ -599,9 +309,7 @@
               borderWidth: 1
             }]
           },
-          options: {
-            scales: { y: { beginAtZero: true } }
-          }
+          options: { scales: { y: { beginAtZero: true } } }
         });
       } catch (error) {
         console.error("Erro ao carregar estatísticas do vendedor:", error);

@@ -5,6 +5,7 @@ let cart = JSON.parse(localStorage.getItem("checkoutCart") || "[]");
 const API_URL = "http://localhost:3000/api";
 const itemTimers = {}; // Objeto para armazenar os temporizadores de cada item do carrinho
 let currentPaymentMethod = 'pix'; // Método de pagamento padrão
+let currentProductForQuantityModal = null; // Armazena o produto sendo editado no modal de quantidade
 
 // A lista completa de estadosCidades é carregada de estados-cidades.js
 // Certifique-se de que estados-cidades.js esteja incluído ANTES deste script.js no HTML
@@ -82,24 +83,29 @@ function renderProducts(products) {
       const productId = parseInt(event.target.dataset.productId);
       const productToAdd = products.find(p => p.id === productId);
       if (productToAdd) {
-        addToCart(productToAdd);
+        const existingItem = cart.find(item => item.id === productToAdd.id);
+        if (existingItem) {
+          openQuantityModal(productToAdd, existingItem.quantity);
+        } else {
+          addToCart(productToAdd, 1);
+        }
       }
     });
   });
 }
 
-// Adicionar produto ao carrinho
-function addToCart(product) {
+// Adicionar produto ao carrinho ou atualizar quantidade
+function addToCart(product, quantity) {
   const existingItemIndex = cart.findIndex(item => item.id === product.id);
 
   if (existingItemIndex > -1) {
-    cart[existingItemIndex].quantity += 1;
+    cart[existingItemIndex].quantity = quantity;
   } else {
-    cart.push({ ...product, quantity: 1, addedTime: Date.now() }); // Adiciona timestamp
+    cart.push({ ...product, quantity: quantity, addedTime: Date.now() });
   }
   localStorage.setItem("checkoutCart", JSON.stringify(cart));
   updateCartDisplay();
-  alert(`${product.name} adicionado ao carrinho!`);
+  alert(`${product.name} adicionado ao carrinho com ${quantity} unidade(s)!`);
 }
 
 // Remover produto do carrinho
@@ -210,6 +216,7 @@ function updateCartDisplay() {
 
   cartTotalSpan.textContent = `R$ ${total.toFixed(2)}`;
 
+  // Lógica para habilitar/desabilitar o botão "Finalizar compra"
   const proceedToPaymentButton = document.getElementById("proceedToPaymentButton");
   if (proceedToPaymentButton) {
     proceedToPaymentButton.disabled = cart.length === 0;
@@ -222,7 +229,7 @@ function toggleCartModal() {
   if (cartModal) {
     cartModal.classList.toggle("hidden");
     if (!cartModal.classList.contains("hidden")) {
-      updateCartDisplay();
+      updateCartDisplay(); // Garante que o display do carrinho é atualizado ao abrir
     }
   }
 }
@@ -235,14 +242,16 @@ function closeCartModal() {
   }
 }
 
-// --- FUNÇÕES PARA O NOVO MODAL DE PAGAMENTO ---
+// --- FUNÇÕES PARA O MODAL DE PAGAMENTO ---
 
 // Abre o modal de pagamento
 function openPaymentModal() {
+  console.log("openPaymentModal() chamada.");
   const cartTotalSpan = document.getElementById("cartTotal");
   const paymentTotalSpan = document.getElementById("paymentTotal");
   const paymentModal = document.getElementById("paymentModal");
 
+  // Verificação de carrinho vazio
   if (cart.length === 0) {
     alert("Seu carrinho está vazio. Adicione produtos antes de finalizar a compra.");
     return;
@@ -257,7 +266,10 @@ function openPaymentModal() {
   document.getElementById('cashDetails').classList.add('hidden');
   document.getElementById('paymentPix').checked = true; // Garante que Pix esteja selecionado
 
-  currentPaymentMethod = 'pix'; // Reseta o método selecionado para Pix
+  // Limpa o QR Code e o código Pix ao abrir o modal, para que sejam gerados novamente
+  document.getElementById('pixQrCodeImage').src = "https://via.placeholder.com/150?text=Gerando...";
+  document.getElementById('pixCode').value = "Aguardando geração do Pix...";
+
 
   document.getElementById("cartModal").classList.add("hidden"); // Esconde o modal do carrinho
   paymentModal.classList.remove("hidden"); // Mostra o modal de pagamento
@@ -266,13 +278,10 @@ function openPaymentModal() {
 // Fecha o modal de pagamento
 function closePaymentModal() {
   document.getElementById("paymentModal").classList.add("hidden");
-  // Opcional: Você pode reabrir o modal do carrinho aqui se desejar
-  // document.getElementById("cartModal").classList.remove("hidden");
 }
 
 // Lida com a mudança do método de pagamento (Pix, Cartão, Dinheiro)
 function handlePaymentMethodChange(event) {
-  currentPaymentMethod = event.target.value;
   const pixDetails = document.getElementById('pixDetails');
   const cardDetails = document.getElementById('cardDetails');
   const cashDetails = document.getElementById('cashDetails');
@@ -281,11 +290,16 @@ function handlePaymentMethodChange(event) {
   cardDetails.classList.add('hidden');
   cashDetails.classList.add('hidden');
 
-  if (currentPaymentMethod === 'pix') {
+  const selectedMethod = event.target.value;
+
+  if (selectedMethod === 'pix') {
     pixDetails.classList.remove('hidden');
-  } else if (currentPaymentMethod === 'creditCard' || currentPaymentMethod === 'debitCard') {
+    if (cart.length > 0) {
+        confirmPayment();
+    }
+  } else if (selectedMethod === 'creditCard' || selectedMethod === 'debitCard') {
     cardDetails.classList.remove('hidden');
-  } else if (currentPaymentMethod === 'cash') {
+  } else if (selectedMethod === 'cash') {
     cashDetails.classList.remove('hidden');
   }
 }
@@ -318,8 +332,28 @@ function calculateChange() {
 async function confirmPayment() {
   const totalAmount = parseFloat(document.getElementById("paymentTotal").textContent.replace('R$ ', '').replace(',', '.'));
 
+  // Adicionado log para ver todos os radio buttons de pagamento
+  const allPaymentRadios = document.querySelectorAll('input[name="paymentMethod"]');
+  console.log('Todos os radio buttons de pagamento:', allPaymentRadios);
+  allPaymentRadios.forEach((radio, index) => {
+      console.log(`Radio ${index}: id=${radio.id}, value=${radio.value}, checked=${radio.checked}`);
+  });
+
+
+  const selectedPaymentMethodRadio = document.querySelector('input[name="paymentMethod"]:checked');
+  console.log('Radio button de pagamento selecionado (elemento):', selectedPaymentMethodRadio);
+
+  if (!selectedPaymentMethodRadio) {
+      alert("Por favor, selecione um método de pagamento.");
+      console.error("Nenhum método de pagamento selecionado.");
+      return;
+  }
+  const method = selectedPaymentMethodRadio.value;
+  console.log('Método de pagamento obtido:', method);
+
+
   let paymentDetails = {
-    method: currentPaymentMethod,
+    method: method,
     amount: totalAmount,
     cartItems: cart.map(item => ({
       productId: item.id,
@@ -329,8 +363,18 @@ async function confirmPayment() {
     }))
   };
 
-  // Coleta detalhes específicos do método de pagamento
-  if (currentPaymentMethod === 'creditCard' || currentPaymentMethod === 'debitCard') {
+  console.log('--- Dados da Requisição de Pagamento (Frontend) ---');
+  console.log('paymentMethod:', paymentDetails.method);
+  console.log('amount:', paymentDetails.amount);
+  console.log('cartItems:', paymentDetails.cartItems);
+  console.log('--------------------------------------------------');
+
+  // ✅ NOVO LOG: Log do JSON completo que será enviado
+  const jsonPayload = JSON.stringify(paymentDetails);
+  console.log('JSON Payload enviado para o backend:', jsonPayload);
+
+
+  if (method === 'creditCard' || method === 'debitCard') {
     const cardNumber = document.getElementById('cardNumber').value.replace(/\s/g, '');
     const cardName = document.getElementById('cardName').value.trim();
     const cardExpiry = document.getElementById('cardExpiry').value.trim();
@@ -340,7 +384,6 @@ async function confirmPayment() {
       alert("Por favor, preencha todos os dados do cartão.");
       return;
     }
-    // Adicionar validações mais robustas aqui (número de cartão, validade, CVV)
     if (!/^\d{16}$/.test(cardNumber)) {
         alert("Número do cartão inválido. Deve ter 16 dígitos.");
         return;
@@ -361,7 +404,17 @@ async function confirmPayment() {
       expiry: cardExpiry,
       cvv: cardCvv
     };
-  } else if (currentPaymentMethod === 'cash') {
+    alert("Processando pagamento via Cartão...");
+    setTimeout(() => {
+        alert("Pagamento via Cartão simulado com sucesso!");
+        cart = [];
+        localStorage.setItem("checkoutCart", JSON.stringify(cart));
+        updateCartDisplay();
+        closePaymentModal();
+        closeCartModal();
+    }, 1500);
+    return;
+  } else if (method === 'cash') {
     const cashAmountPaid = parseFloat(document.getElementById("cashAmountPaid").value);
     if (isNaN(cashAmountPaid) || cashAmountPaid < totalAmount) {
       alert("Valor pago em dinheiro é insuficiente.");
@@ -369,52 +422,104 @@ async function confirmPayment() {
     }
     paymentDetails.cashPaid = cashAmountPaid;
     paymentDetails.change = cashAmountPaid - totalAmount;
-  } else if (currentPaymentMethod === 'pix') {
-      // Nenhum dado adicional complexo necessário para a simulação do Pix
+    alert("Pagamento em Dinheiro confirmado! Aguardando o troco...");
+    cart = [];
+    localStorage.setItem("checkoutCart", JSON.stringify(cart));
+    updateCartDisplay();
+    closePaymentModal();
+    closeCartModal();
+    return;
+  } else if (method === 'pix') {
+      document.getElementById('pixQrCodeImage').src = "https://via.placeholder.com/150?text=Gerando...";
+      document.getElementById('pixCode').value = "Gerando código Pix...";
+  } else {
+      alert("Método de pagamento não suportado ou não selecionado.");
+      return;
   }
 
   try {
-    // --- INÍCIO DA ALTERAÇÃO PARA INCLUIR O TOKEN JWT ---
-    const token = localStorage.getItem('token'); // Pega o token do localStorage
+    const token = localStorage.getItem('authToken');
 
     if (!token) {
         alert('Você não está logado. Por favor, faça login para finalizar a compra.');
         console.error('Token JWT não encontrado no localStorage.');
-        return; // Sai da função se não houver token
+        return;
     }
 
-    alert("Processando pagamento via " + currentPaymentMethod + "..."); // Simulação
     const response = await fetch(`${API_URL}/payments/process`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}` // <--- ADIÇÃO DO CABEÇALHO DE AUTORIZAÇÃO
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(paymentDetails),
     });
-    // --- FIM DA ALTERAÇÃO ---
 
     const result = await response.json();
 
     if (response.ok) {
-      alert(`Pagamento de R$ ${totalAmount.toFixed(2).replace('.', ',')} via ${currentPaymentMethod} realizado com sucesso! ${result.message || ''}`);
-      cart = []; // Limpa o carrinho
-      localStorage.setItem("checkoutCart", JSON.stringify(cart));
-      updateCartDisplay();
-      closePaymentModal(); // Fecha o modal de pagamento
-      closeCartModal(); // Garante que o modal do carrinho também está fechado
+      document.getElementById('pixQrCodeImage').src = `data:image/png;base64,${result.pixData.qr_code_base64}`;
+      document.getElementById('pixCode').value = result.pixData.qr_code;
+      alert(`Pagamento Pix de R$ ${totalAmount.toFixed(2).replace('.', ',')} via ${method} gerado com sucesso! Escaneie o QR Code ou copie o código.`);
     } else {
-      alert(`Erro no pagamento: ${result.message || 'Houve um problema ao processar seu pagamento.'}`);
-      // Em caso de erro, você pode querer manter o modal aberto ou dar opções ao usuário.
+      alert(`Erro ao gerar Pix: ${result.message || 'Houve um problema ao gerar seu Pix.'}`);
+      document.getElementById('pixQrCodeImage').src = "https://via.placeholder.com/150?text=Erro";
+      document.getElementById('pixCode').value = "Erro na geração do Pix.";
+      console.error('Erro na resposta da API de pagamento:', result);
     }
   } catch (error) {
-    console.error("Erro ao processar pagamento:", error);
-    alert("Erro de conexão ou servidor ao processar pagamento. Tente novamente.");
+    console.error("Erro ao processar pagamento Pix:", error);
+    alert("Erro de conexão ou servidor ao processar pagamento Pix. Tente novamente.");
+    document.getElementById('pixQrCodeImage').src = "https://via.placeholder.com/150?text=Erro";
+    document.getElementById('pixCode').value = "Erro de conexão.";
   }
 }
 
+// --- NOVAS FUNÇÕES PARA O MODAL DE QUANTIDADE ---
+function openQuantityModal(product, currentQuantity) {
+    currentProductForQuantityModal = product;
+    const quantityModal = document.getElementById('quantityModal');
+    const quantityInput = document.getElementById('quantityInputModal');
+    const quantityProductInfo = document.getElementById('quantityProductInfo');
 
-// Funções de filtro e eventos (mantidas como estão, mas com a adição do novo botão)
+    quantityProductInfo.innerHTML = `
+        <img src="${product.image}" alt="${product.name}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 5px; margin-bottom: 10px;">
+        <h3>${product.name}</h3>
+        <p>Preço: R$ ${product.price.toFixed(2)}</p>
+        <p>Quantidade atual no carrinho: ${currentQuantity}</p>
+    `;
+    quantityInput.value = currentQuantity;
+    quantityModal.classList.remove('hidden');
+}
+
+function closeQuantityModal() {
+    document.getElementById('quantityModal').classList.add('hidden');
+    currentProductForQuantityModal = null;
+}
+
+function changeQuantityModal(delta) {
+    const quantityInput = document.getElementById('quantityInputModal');
+    let newQuantity = parseInt(quantityInput.value) + delta;
+    if (newQuantity < 1) {
+        newQuantity = 1;
+    }
+    quantityInput.value = newQuantity;
+}
+
+function confirmQuantityModal() {
+    const quantityInput = document.getElementById('quantityInputModal');
+    const newQuantity = parseInt(quantityInput.value);
+
+    if (currentProductForQuantityModal && !isNaN(newQuantity) && newQuantity >= 1) {
+        addToCart(currentProductForQuantityModal, newQuantity);
+        closeQuantityModal();
+    } else {
+        alert("Por favor, insira uma quantidade válida.");
+    }
+}
+
+
+// Funções de filtro e eventos
 function populateFilters() {
   const stateSelect = document.getElementById("stateFilter");
   const citySelect = document.getElementById("cityFilter");
@@ -460,12 +565,15 @@ document.getElementById("searchInput")?.addEventListener("input", () => {
 document.addEventListener("DOMContentLoaded", () => {
   populateFilters();
   loadProducts();
-  updateCartDisplay();
+  updateCartDisplay(); // Garante que o estado do carrinho é atualizado e o botão habilitado/desabilitado
 
   // Event listener para o botão "Finalizar compra" do modal do carrinho
   const proceedToPaymentButton = document.getElementById("proceedToPaymentButton");
   if (proceedToPaymentButton) {
     proceedToPaymentButton.addEventListener('click', openPaymentModal);
+    console.log("Evento de clique anexado ao botão 'Finalizar compra'."); // Log para depuração
+  } else {
+    console.error("Botão 'Finalizar compra' (ID: proceedToPaymentButton) não encontrado no DOM."); // Log se o botão não for encontrado
   }
 
   // Event listeners para os radio buttons de pagamento
